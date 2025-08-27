@@ -1,0 +1,234 @@
+/* Twyst Mobile Layout System */
+/* Consistent heights, z-index tokens, and safe-area support */
+
+:root {
+  /* Layout heights */
+  --twyst-header-h: 56px;             /* top app bar */
+  --twyst-catnav-h: 44px;             /* category chips row */
+  --twyst-cart-h: 72px;               /* sticky cart/footer */
+  
+  /* iOS safe areas */
+  --sa-top: env(safe-area-inset-top, 0px);
+  --sa-bottom: env(safe-area-inset-bottom, 0px);
+  --sa-left: env(safe-area-inset-left, 0px);
+  --sa-right: env(safe-area-inset-right, 0px);
+
+  /* Z-index map - centralized to prevent conflicts */
+  --z-base: 1;
+  --z-elevated: 10;
+  --z-header: 40;
+  --z-catnav: 35;
+  --z-cart: 50;
+  --z-sheet: 60;
+  --z-toast: 70;
+  --z-overlay: 80;
+}
+
+/* Sticky positioning utilities */
+.sticky-header {
+  position: sticky;
+  top: var(--sa-top);
+  z-index: var(--z-header);
+}
+
+.sticky-catnav {
+  position: sticky;
+  top: calc(var(--sa-top) + var(--twyst-header-h));
+  z-index: var(--z-catnav);
+}
+
+.sticky-cart {
+  position: sticky;
+  bottom: 0;
+  z-index: var(--z-cart);
+}
+
+.fixed-cart {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: var(--z-cart);
+}
+
+/* Safe area and spacing utilities */
+.page-safe {
+  padding-bottom: calc(var(--twyst-cart-h) + var(--sa-bottom) + 12px);
+}
+
+.cart-spacer {
+  height: calc(var(--twyst-cart-h) + var(--sa-bottom));
+  flex-shrink: 0;
+}
+
+.safe-top {
+  padding-top: var(--sa-top);
+}
+
+.safe-bottom {
+  padding-bottom: var(--sa-bottom);
+}
+
+.safe-left {
+  padding-left: var(--sa-left);
+}
+
+.safe-right {
+  padding-right: var(--sa-right);
+}
+
+/* Scroll margin for anchored sections */
+.scroll-mt-app {
+  scroll-margin-top: calc(var(--sa-top) + var(--twyst-header-h) + var(--twyst-catnav-h) + 12px);
+}
+
+.scroll-mt-header {
+  scroll-margin-top: calc(var(--sa-top) + var(--twyst-header-h) + 12px);
+}
+
+/* Prevent accidental overlays from decorative layers */
+.decoration-layer {
+  pointer-events: none;
+}
+
+/* Mobile viewport utilities */
+.min-h-app {
+  min-height: 100dvh;
+}
+
+.h-header {
+  height: var(--twyst-header-h);
+}
+
+.h-catnav {
+  height: var(--twyst-catnav-h);
+}
+
+.h-cart {
+  height: var(--twyst-cart-h);
+}
+
+/* Scrollable areas */
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Backdrop blur for sticky elements */
+.backdrop-blur-sticky {
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+/* Container utilities */
+.container-mobile {
+  margin: 0 auto;
+  max-width: 28rem; /* 448px - mobile-first container */
+  width: 100%;
+}
+
+/* Prevent layout shifts from transforms */
+.no-transform-stacking {
+  transform: none;
+}
+
+/* Z-index utilities using tokens */
+.z-base { z-index: var(--z-base); }
+.z-elevated { z-index: var(--z-elevated); }
+.z-header { z-index: var(--z-header); }
+.z-catnav { z-index: var(--z-catnav); }
+.z-cart { z-index: var(--z-cart); }
+.z-sheet { z-index: var(--z-sheet); }
+.z-toast { z-index: var(--z-toast); }
+.z-overlay { z-index: var(--z-overlay); }
+
+/* Touch-friendly tap targets */
+.tap-target {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+/* Smooth scroll behavior */
+html {
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+/* Focus management for sticky elements */
+.sticky-header:focus-within,
+.sticky-catnav:focus-within {
+  z-index: calc(var(--z-header) + 1);
+}
+
+/* Ensure modals and sheets use proper z-index */
+[data-radix-portal] {
+  z-index: var(--z-sheet);
+}
+
+/* Toast positioning */
+[data-sonner-toaster] {
+  z-index: var(--z-toast) !important;
+}
+
+/* Prevent iOS bounce scroll from revealing background */
+body {
+  overscroll-behavior: none;
+}
+
+/* Category navigation specific styles */
+.category-nav-scroll {
+  scroll-snap-type: x mandatory;
+}
+
+.category-nav-item {
+  scroll-snap-align: start;
+  flex-shrink: 0;
+}
+
+/* Cart bar specific styles */
+.cart-bar-container {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.dark .cart-bar-container {
+  background: rgba(0, 0, 0, 0.95);
+}
+
+/* Prevent content from being hidden behind sticky elements */
+.content-with-sticky-nav {
+  padding-top: calc(var(--twyst-header-h) + var(--twyst-catnav-h));
+}
+
+/* Mobile-specific adjustments */
+@media (max-width: 640px) {
+  .container-mobile {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+}
+
+/* Landscape mobile adjustments */
+@media (max-height: 500px) and (orientation: landscape) {
+  .sticky-header,
+  .sticky-catnav {
+    position: relative;
+  }
+  
+  .page-safe {
+    padding-bottom: calc(var(--twyst-cart-h) + 12px);
+  }
+}
+
+
+

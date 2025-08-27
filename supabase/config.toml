@@ -1,0 +1,19 @@
+project_id = "zbfosmwzntckdrxrfwta"
+
+[functions.checkout]
+verify_jwt = false
+
+[functions.dev-table-token]
+verify_jwt = false
+
+[functions.dev-checkout]
+verify_jwt = false
+
+[functions.cleanup-stale-sessions]
+verify_jwt = false
+
+[functions.webhook-stripe]
+verify_jwt = false
+
+[functions.retry-stripe-events]
+verify_jwt = false

@@ -1,0 +1,20 @@
+User-agent: *
+Allow: /
+
+# Block demo/development routes
+Disallow: /dev-launch
+Disallow: /dev-launch/*
+Disallow: /api/dev-auth
+
+# Block admin routes (if any)
+Disallow: /admin
+Disallow: /admin/*
+
+# Block internal API routes
+Disallow: /api/
+
+# Allow specific public API routes if needed
+# Allow: /api/menu
+# Allow: /api/venues
+
+Sitemap: https://yoursite.com/sitemap.xml
