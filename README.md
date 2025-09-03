@@ -150,6 +150,59 @@ For development, you can seed test data through the Supabase Dashboard:
 
 ## Development Workflow
 
+## Platform-only Payments (Connect OFF)
+
+**Current Mode**: Stripe Connect is temporarily **disabled**. All payments process through the platform account.
+
+### Quick Test (Platform-only)
+
+**Terminal A:**
+```bash
+pnpm dev
+```
+
+**Terminal B:**
+```bash
+stripe listen --forward-to localhost:3000/api/webhooks/stripe
+```
+
+Copy the printed `whsec_...` into `.env.local` as `STRIPE_WEBHOOK_SECRET`.
+
+**No venue onboarding required** - Connect is disabled.
+
+### Place a test order
+
+1. Visit the diner menu and add items to cart
+2. Click "Checkout" - should redirect to Stripe Checkout (platform account)
+3. Use test card: `4242 4242 4242 4242`, any future expiry/CVC
+4. After payment, should redirect to `/order-status` with order marked as paid
+5. FOH board should show the order and allow status updates
+
+### Expected Flow
+
+1. **Client**: Checkout button → `/api/checkout/create` (platform mode)
+2. **Server**: Creates Stripe session on platform account (no `stripeAccount` option)
+3. **Stripe**: User pays with test card
+4. **Stripe**: Redirects to `/api/checkout/success` 
+5. **Server**: Retrieves session, marks order paid, mints JWT
+6. **Client**: Redirects to `/order-status?orderId=...&t=...`
+7. **Webhook**: Processes `checkout.session.completed` (platform verification)
+8. **FOH**: Receives realtime updates
+
+### Re-enabling Connect Later
+
+To restore Stripe Connect functionality:
+
+1. Set `TWYST_USE_CONNECT=true` in environment
+2. Ensure venues have `stripe_account_id` populated
+3. Add `STRIPE_CONNECT_WEBHOOK_SECRET` for dual webhook verification
+4. Test with connect listener:
+   ```bash
+   stripe listen --forward-connect-to localhost:3000/api/webhooks/stripe
+   ```
+
+## Stripe Test (Legacy - when Connect is re-enabled)
+
 ### Stripe Webhook Testing
 
 To test Stripe webhooks locally:

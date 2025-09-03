@@ -70,7 +70,7 @@ export const MenuItemCard: React.FC<MenuItemCardProps> = ({ item, disabled = fal
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
-      className="menu-card overflow-hidden"
+      className="menu-card overflow-hidden border rounded-xl bg-card shadow-sm hover:shadow-md transition-all duration-200 h-full flex flex-col"
     >
       {item.image && (
         <div className="aspect-video bg-muted rounded-t-xl overflow-hidden">
@@ -82,7 +82,7 @@ export const MenuItemCard: React.FC<MenuItemCardProps> = ({ item, disabled = fal
         </div>
       )}
 
-      <div className="p-4 space-y-3">
+      <div className="p-4 space-y-3 flex-1 flex flex-col">
         <div className="flex items-start justify-between gap-3">
           <div className="flex-1">
             <h3 className="font-semibold text-lg leading-tight">{item.name}</h3>
@@ -111,7 +111,7 @@ export const MenuItemCard: React.FC<MenuItemCardProps> = ({ item, disabled = fal
           </div>
         )}
 
-        <div className="flex gap-2 pt-2">
+        <div className="flex gap-2 pt-2 mt-auto">
           <Button
             onClick={handleQuickAdd}
             disabled={!item.available || isAdding || disabled}

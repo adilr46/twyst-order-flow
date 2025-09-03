@@ -1,11 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
-import { createServiceClient } from '@/lib/supabaseServer'
+import { createServerSupabaseClient } from '@/lib/supabase'
 import { ENV } from '@/env'
+
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 // Initialize Stripe with secret key (only if available)
 const stripe = ENV.STRIPE_SECRET_KEY ? new Stripe(ENV.STRIPE_SECRET_KEY, {
-  apiVersion: '2025-07-30.basil',
+  apiVersion: '2025-08-27.basil',
 }) : null;
 
 interface StuckOrder {
@@ -48,7 +52,7 @@ export async function GET(req: NextRequest) {
     console.log('Starting stuck payment reprocessing job...')
 
     // Create Supabase client with service role
-    const supabaseClient = await createServiceClient()
+    const supabaseClient = createServerSupabaseClient()
 
     // Find potentially stuck orders using the database function
     const { data: stuckOrders, error: queryError } = await supabaseClient
@@ -152,11 +156,11 @@ async function processStuckOrder(
       }
 
       if (recoverySuccess) {
-        // Trigger realtime notification to FOH
+        // Trigger realtime notification to FOH by updating status
         await supabaseClient
           .from('orders')
           .update({
-            updated_at: new Date().toISOString() // This triggers the realtime subscription
+            status: 'paid' // This triggers the realtime subscription
           })
           .eq('id', order.id)
 

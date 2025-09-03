@@ -277,8 +277,9 @@
 
   /* Menu Cards */
   .menu-card {
-    @apply card-interactive p-4 space-y-3;
+    @apply card-interactive;
     @apply hover:border-primary/30;
+    @apply h-full flex flex-col;
   }
 
   .menu-card-image {

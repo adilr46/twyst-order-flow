@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServiceClient } from '@/lib/supabaseServer'
+import { createServerSupabaseClient } from '@/lib/supabase'
+import { devLog } from '@/lib/devLog'
+
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic'; 
+export const revalidate = 0;
 
 export async function GET(req: NextRequest) {
   try {
@@ -7,14 +12,17 @@ export async function GET(req: NextRequest) {
     const venueId = searchParams.get('venueId')
     const category = searchParams.get('category')
 
+    devLog('menu-api:request', { venueId: venueId?.slice(0, 8), category });
+
     if (!venueId) {
+      devLog('menu-api:error', 'Missing venueId parameter');
       return NextResponse.json(
         { error: 'venueId is required' },
         { status: 400 }
       )
     }
 
-    const supabaseClient = await createServiceClient()
+    const supabaseClient = createServerSupabaseClient()
 
     let query = (supabaseClient
       .from('items') as any)
@@ -40,6 +48,7 @@ export async function GET(req: NextRequest) {
     const { data: items, error } = await query
 
     if (error) {
+      devLog('menu-api:db-error', { error: error.message, venueId: venueId?.slice(0, 8) });
       console.error('Failed to fetch menu items:', error)
       return NextResponse.json(
         { error: 'Failed to fetch menu items' },
@@ -63,6 +72,12 @@ export async function GET(req: NextRequest) {
       label: categoryName,
       count: categorizedItems[categoryName].length
     }))
+
+    devLog('menu-api:success', { 
+      venueId: venueId?.slice(0, 8), 
+      itemCount: items?.length || 0,
+      categoryCount: categories?.length || 0
+    });
 
     return NextResponse.json({
       items,

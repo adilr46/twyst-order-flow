@@ -11,12 +11,18 @@ import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/lib/supabase';
+// Removed complex supabaseForOrder - using simple client
 import { getStatusDescription, getStatusColor, type OrderStatus } from '@/utils/orderTransitions';
 // import HeaderShell from '@/components/layout/HeaderShell';
 
+type PaymentStatus = 'pending' | 'paid' | 'failed';
+
+// src/app/order-status/page.tsx - Replace lines 20-48:
 interface OrderData {
   id: string;
   status: OrderStatus;
+  payment_status: PaymentStatus;
+  payment_failed_reason?: string | null;
   total_cents: number;
   subtotal_cents: number;
   tax_cents: number;
@@ -24,22 +30,22 @@ interface OrderData {
   venues: {
     name: string;
     slug: string;
-  };
+  }[]; // Array, not single object
   order_items: Array<{
     id: string;
-    qty: number;
+    quantity: number;
     unit_price_cents: number;
     notes?: string;
     items: {
       name: string;
       description?: string;
-    };
+    }[]; // Array, not single object
   }>;
   sessions: {
     tables: {
       label: string;
-    };
-  };
+    }[];
+  }[]; // Array, not single object
 }
 
 interface OrderStatusProps {
@@ -50,7 +56,11 @@ export default function OrderStatusPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const orderId = searchParams?.get('orderId');
+  const token = searchParams?.get('t');
   const { toast } = useToast();
+  
+  // Use scoped client if JWT token is available
+  const supabaseClient = supabase; // Simplified for pilot
   
   const [order, setOrder] = useState<OrderData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -61,76 +71,233 @@ export default function OrderStatusPage() {
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Fetch order data
-  const fetchOrder = async () => {
-    if (!orderId) {
-      setError('No order ID provided');
-      setLoading(false);
+  // Replace the fetchOrder function (lines 74-139) with this corrected version:
+
+const fetchOrder = async () => {
+  if (!orderId) {
+    setError('No order ID provided');
+    setLoading(false);
+    return;
+  }
+
+  try {
+    const { data, error } = await supabaseClient
+      .from('orders')
+      .select(`
+        id,
+        status,
+        payment_status,
+        payment_failed_reason,
+        total_cents,
+        subtotal_cents,
+        tax_cents,
+        created_at,
+        venues (
+          name,
+          slug
+        ),
+        order_items (
+          id,
+          quantity,
+          unit_price_cents,
+          notes,
+          items (
+            name,
+            description
+          )
+        ),
+        sessions (
+          tables (
+            label
+          )
+        )
+      `)
+      .eq('id', orderId)
+      .single();
+
+    if (error) {
+      console.error('Supabase error:', error);
+      setError('Failed to load order details');
       return;
     }
 
+    if (!data) {
+      setError('Order not found');
+      return;
+    }
+
+    // Convert the response to match our interface structure
+    const orderData: OrderData = {
+      ...(data as any),
+      // Ensure venues is an array
+      venues: Array.isArray((data as any).venues) ? (data as any).venues : [(data as any).venues],
+      // Ensure order_items and nested items are arrays
+      order_items: ((data as any).order_items || []).map((item: any) => ({
+        ...item,
+        items: Array.isArray(item.items) ? item.items : [item.items]
+      })),
+      // Ensure sessions is an array
+      sessions: Array.isArray((data as any).sessions) ? (data as any).sessions : [(data as any).sessions],
+      // Provide fallbacks for payment fields
+      payment_status: (data as any).payment_status || 'pending',
+      payment_failed_reason: (data as any).payment_failed_reason || null
+    } as OrderData;
+    
+    setOrder(orderData);
+  } catch (err: any) {
+    console.error('Failed to fetch order:', err);
+    setError(err.message || 'Failed to load order details');
+  } finally {
+    setLoading(false);
+  }
+};
+
+// Replace the polling useEffect (around lines 141-171) with this:
+
+useEffect(() => {
+  if (!orderId || !order) return;
+  if (order.payment_status !== 'pending') return;
+
+  let cancelled = false;
+  const poll = async (attempt = 0) => {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await supabaseClient
         .from('orders')
-        .select(`
-          id,
-          status,
-          total_cents,
-          subtotal_cents,
-          tax_cents,
-          created_at,
-          venues (
-            name,
-            slug
-          ),
-          order_items (
-            id,
-            qty,
-            unit_price_cents,
-            notes,
-            items (
-              name,
-              description
-            )
-          ),
-          sessions (
-            tables (
-              label
-            )
-          )
-        `)
+        .select('payment_status, status')
         .eq('id', orderId)
         .single();
 
+      if (cancelled) return;
+      
       if (error) {
-        console.error('Supabase error:', error);
-        setError('Failed to load order details');
+        console.warn('Polling error:', error);
+        const delay = Math.min(1000 * Math.pow(1.6, attempt), 10000);
+        setTimeout(() => poll(attempt + 1), delay);
         return;
       }
 
-      if (!data) {
-        setError('Order not found');
+      if ((data as any)?.payment_status === 'paid') {
+        setOrder(prev => prev ? { 
+          ...prev, 
+          payment_status: 'paid', 
+          status: ((data as any).status as OrderStatus) ?? prev.status 
+        } : prev);
         return;
       }
-
-      // Ensure status is not null before setting the order
-      if (data.status) {
-        setOrder(data as OrderData);
-      } else {
-        setError('Order status is invalid');
+      
+      if ((data as any)?.payment_status === 'failed') {
+        setOrder(prev => prev ? { ...prev, payment_status: 'failed' } : prev);
+        return;
       }
-    } catch (err: any) {
-      console.error('Failed to fetch order:', err);
-      setError(err.message || 'Failed to load order details');
-    } finally {
-      setLoading(false);
+      
+      const delay = Math.min(1000 * Math.pow(1.6, attempt), 10000);
+      setTimeout(() => poll(attempt + 1), delay);
+    } catch (err) {
+      console.warn('Polling error:', err);
+      if (!cancelled) {
+        const delay = Math.min(1000 * Math.pow(1.6, attempt), 10000);
+        setTimeout(() => poll(attempt + 1), delay);
+      }
     }
   };
+  
+  poll();
+  return () => { cancelled = true; };
+}, [orderId, order?.payment_status, supabaseClient]);
+
+// Replace the status polling useEffect (around lines 223-269) with this:
+
+useEffect(() => {
+  if (!orderId || !order) return;
+
+  let isSubscribed = true;
+
+  const pollForUpdates = async () => {
+    try {
+      const { data, error } = await supabaseClient
+        .from('orders')
+        .select('status, payment_status')
+        .eq('id', orderId)
+        .single();
+      
+      if (error) {
+        console.warn('Status polling error:', error);
+        return;
+      }
+      
+      if (data && (data as any).status && (data as any).status !== order.status && isSubscribed) {
+        const prevStatus = order.status;
+        setOrder(prev => prev ? { 
+          ...prev, 
+          status: (data as any).status as OrderStatus,
+          payment_status: ((data as any).payment_status as PaymentStatus) || prev.payment_status
+        } : null);
+        
+        // Trigger success animation for paid status
+        if ((data as any).status === 'paid' && prevStatus !== 'paid') {
+          setJustPaid(true);
+          setTimeout(() => setJustPaid(false), 2000);
+        }
+        
+        toast({
+          title: "Order Updated",
+          description: getStatusDescription((data as any).status as OrderStatus),
+        });
+      }
+    } catch (error) {
+      console.error('Polling error:', error);
+    }
+  };
+
+  // Poll every 10 seconds
+  intervalRef.current = setInterval(pollForUpdates, 10000);
+
+  return () => {
+    isSubscribed = false;
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+    }
+  };
+}, [orderId, order, toast, supabaseClient]);
+
+  // Exponential backoff polling for pending payments
+  useEffect(() => {
+    if (!orderId || !order) return;
+    if (order.payment_status !== 'pending') return;
+
+    let cancelled = false;
+    const poll = async (attempt = 0) => {
+      const { data } = await supabaseClient
+        .from('orders')
+        .select('payment_status,status')
+        .eq('id', orderId)
+        .single();
+
+      if (cancelled) return;
+      if ((data as any)?.payment_status === 'paid') {
+        setOrder(prev => prev ? { 
+          ...prev, 
+          payment_status: 'paid', 
+          status: ((data as any).status as OrderStatus) ?? prev.status 
+        } : prev);
+        return;
+      }
+      if ((data as any)?.payment_status === 'failed') {
+        setOrder(prev => prev ? { ...prev, payment_status: 'failed' } : prev);
+        return;
+      }
+      const delay = Math.min(1000 * Math.pow(1.6, attempt), 10000);
+      setTimeout(() => poll(attempt + 1), delay);
+    };
+    poll();
+    return () => { cancelled = true; };
+  }, [orderId, order?.payment_status, supabaseClient]);
 
   // Real-time subscription for order updates
   useEffect(() => {
     if (!orderId || !order) return;
 
-    const subscription = supabase
+    const subscription = supabaseClient
       .channel('order-updates')
       .on('postgres_changes', {
         event: 'UPDATE',
@@ -139,7 +306,24 @@ export default function OrderStatusPage() {
         filter: `id=eq.${orderId}`
       }, (payload) => {
         console.log('Order updated:', payload);
-        const newStatus = payload.new.status;
+        const newPayload = payload.new as any;
+        
+        // Guard pending→paid transition
+        if (newPayload?.payment_status === 'paid' && order?.payment_status !== 'paid') {
+          setOrder(prev => prev && { 
+            ...prev, 
+            payment_status: 'paid', 
+            status: 'paid' as OrderStatus 
+          });
+          toast({ 
+            title: 'Payment confirmed', 
+            description: 'Sending to the kitchen.' 
+          });
+          setJustPaid(true);
+          setTimeout(() => setJustPaid(false), 2000);
+        }
+        
+        const newStatus = newPayload.status;
         if (newStatus !== order.status) {
           setOrder(prev => prev ? { ...prev, status: newStatus } : null);
           setLastUpdate(Date.now());
@@ -149,12 +333,6 @@ export default function OrderStatusPage() {
             title: "Order Updated",
             description: getStatusDescription(newStatus),
           });
-
-          // Trigger success animation for paid status
-          if (newStatus === 'paid' && order.status !== 'paid') {
-            setJustPaid(true);
-            setTimeout(() => setJustPaid(false), 2000);
-          }
         }
       })
       .subscribe();
@@ -162,7 +340,7 @@ export default function OrderStatusPage() {
     return () => {
       subscription.unsubscribe();
     };
-  }, [orderId, order, toast]);
+  }, [orderId, order, toast, supabaseClient]);
 
   // Polling fallback for status updates
   useEffect(() => {
@@ -172,25 +350,29 @@ export default function OrderStatusPage() {
 
     const pollForUpdates = async () => {
       try {
-        const { data } = await supabase
+        const { data } = await supabaseClient
           .from('orders')
-          .select('status')
+          .select('status,payment_status')
           .eq('id', orderId)
           .single();
         
-        if (data && data.status && data.status !== order.status && isSubscribed) {
+        if (data && (data as any).status && (data as any).status !== order.status && isSubscribed) {
           const prevStatus = order.status;
-          setOrder(prev => prev ? { ...prev, status: data.status as OrderStatus } : null);
+          setOrder(prev => prev ? { 
+            ...prev, 
+            status: (data as any).status as OrderStatus,
+            payment_status: (data as any).payment_status as PaymentStatus
+          } : null);
           
           // Trigger success animation for paid status
-          if (data.status === 'paid' && prevStatus !== 'paid') {
+          if ((data as any).status === 'paid' && prevStatus !== 'paid') {
             setJustPaid(true);
             setTimeout(() => setJustPaid(false), 2000);
           }
           
           toast({
             title: "Order Updated",
-            description: getStatusDescription(data.status as OrderStatus),
+            description: getStatusDescription((data as any).status as OrderStatus),
           });
         }
       } catch (error) {
@@ -207,7 +389,7 @@ export default function OrderStatusPage() {
         clearInterval(intervalRef.current);
       }
     };
-  }, [orderId, order, toast]);
+  }, [orderId, order, toast, supabaseClient]);
 
   // Initialize timestamp after mount to avoid hydration issues
   useEffect(() => {
@@ -344,9 +526,36 @@ export default function OrderStatusPage() {
           Back
         </Button>
         <h1 className="text-2xl font-bold mt-2">Order #{order.id.slice(-6)}</h1>
-        <p className="text-muted-foreground">{order.venues.name}</p>
+        <p className="text-muted-foreground">{order.venues[0]?.name}</p>
       </div>
       <div className="space-y-6 pb-6">
+        {/* Payment Status Alerts */}
+        {order.payment_status === 'pending' && (
+          <Alert className="bg-blue-50 border-blue-200">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            <AlertDescription>Confirming payment… this can take a few seconds.</AlertDescription>
+          </Alert>
+        )}
+
+        {order.payment_status === 'failed' && (
+          <Card className="border-red-200 bg-red-50">
+            <CardHeader><CardTitle>Payment failed</CardTitle></CardHeader>
+            <CardContent className="space-y-3">
+              {order.payment_failed_reason && (
+                <p className="text-sm text-red-700">Reason: {order.payment_failed_reason}</p>
+              )}
+              <div className="flex gap-2">
+              <Button onClick={() => router.replace(`/d/${order.venues[0]?.slug}?restore=1`)}>
+                  Try again
+                </Button>
+                <Button variant="ghost" onClick={() => router.push(`/d/${order.venues[0]?.slug}`)}>
+                  Back to menu
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Status Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -445,10 +654,10 @@ export default function OrderStatusPage() {
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
               <span>Order Details</span>
-              {order.sessions?.tables?.label && (
+              {order.sessions[0]?.tables[0]?.label && (
                 <Badge variant="outline">
                   <Users className="h-3 w-3 mr-1" />
-                  {order.sessions.tables.label}
+                  {order.sessions[0].tables[0].label}
                 </Badge>
               )}
             </CardTitle>
@@ -460,9 +669,9 @@ export default function OrderStatusPage() {
                 <div key={item.id} className="flex justify-between items-start">
                   <div className="flex-1">
                     <div className="flex items-center space-x-2">
-                      <span className="font-medium">{item.items.name}</span>
+                    <span className="font-medium">{item.items[0]?.name}</span>
                       <Badge variant="secondary" className="text-xs">
-                        {item.qty}x
+                        {item.quantity}x
                       </Badge>
                     </div>
                     {item.notes && (
@@ -472,7 +681,7 @@ export default function OrderStatusPage() {
                     )}
                   </div>
                   <span className="font-medium">
-                    {formatPrice(item.unit_price_cents * item.qty)}
+                    {formatPrice(item.unit_price_cents * item.quantity)}
                   </span>
                 </div>
               ))}
@@ -490,7 +699,7 @@ export default function OrderStatusPage() {
                 </div>
               )}
               <div className="flex justify-between font-semibold pt-2 border-t">
-                <span>Total</span>
+                <span>Total <span className="text-xs text-muted-foreground">(VAT inclusive)</span></span>
                 <span>{formatPrice(order.total_cents)}</span>
               </div>
             </div>

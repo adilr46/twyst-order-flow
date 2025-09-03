@@ -20,9 +20,7 @@ const CONFIG = {
 
 // Initialize clients
 const supabase = createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_SERVICE_ROLE_KEY)
-const stripe = new Stripe(CONFIG.STRIPE_SECRET_KEY, {
-  apiVersion: '2025-07-30.basil',
-})
+const stripe = new Stripe(CONFIG.STRIPE_SECRET_KEY);
 
 interface TestResult {
   orderId: string

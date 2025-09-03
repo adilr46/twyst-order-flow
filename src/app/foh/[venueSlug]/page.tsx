@@ -1,11 +1,5 @@
-import FOHOrderBoard from '@/pages/FOHOrderBoard'
+import FOHOrderBoard from '@/components/foh/FOHOrderBoard';
 
-interface FOHOrderBoardPageProps {
-  params: Promise<{ venueSlug: string }>
-}
-
-export default async function FOHOrderBoardPage({ params }: FOHOrderBoardPageProps) {
-  const { venueSlug } = await params
-  
-  return <FOHOrderBoard venueSlug={venueSlug} />
+export default function FOHOrderBoardPage({ params }: { params: { venueSlug: string } }) {
+  return <FOHOrderBoard venueSlug={params.venueSlug} />;
 }

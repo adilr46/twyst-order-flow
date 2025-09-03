@@ -31,8 +31,9 @@ serve(async (req) => {
 
   try {
     // Initialize clients
+// @ts-ignore -- Deno runtime
     const supabaseClient = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_DB_URL") ?? "",
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
 

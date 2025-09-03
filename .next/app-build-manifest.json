@@ -46,25 +46,10 @@
       "static/chunks/main-app.js",
       "static/chunks/app/d/[venueSlug]/page.js"
     ],
-    "/dev-launch/page": [
+    "/api/venues/route": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/dev-launch/page.js"
-    ],
-    "/foh/error": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/foh/error.js"
-    ],
-    "/foh/loading": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/foh/loading.js"
-    ],
-    "/foh/[venueSlug]/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/foh/[venueSlug]/page.js"
+      "static/chunks/app/api/venues/route.js"
     ]
   }
 }

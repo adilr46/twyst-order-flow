@@ -53,3 +53,21 @@ export interface ToastMessage {
   message?: string;
   duration?: number;
 }
+
+// Simplified checkout types
+export interface CheckoutRequest {
+  venueSlug: string;
+  orderId: string;
+}
+
+export interface CheckoutResponse {
+  url: string;
+}
+
+export interface CheckoutCartItem {
+  id: string;
+  name: string;
+  unit_price_cents: number;
+  quantity: number;
+  notes?: string | null;
+}

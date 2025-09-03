@@ -51,22 +51,22 @@ const TestDeepLinks: React.FC = () => {
       // Fallback to demo tokens
       setTestTokens([
         {
-          venueSlug: 'demo-restaurant',
+          venueSlug: 'demo-cafe',
           token: 'demo123',
-          tableLabel: 'Table 1',
-          description: 'Demo token for testing restaurant menu'
+          tableLabel: 'Table A1',
+          description: 'Demo token for Blue Door Café'
         },
         {
-          venueSlug: 'demo-restaurant',
+          venueSlug: 'demo-cafe',
           token: 'demo456',
-          tableLabel: 'Table 2',
-          description: 'Demo token for testing restaurant menu'
+          tableLabel: 'Table A2',
+          description: 'Demo token for Blue Door Café'
         },
         {
-          venueSlug: 'demo-restaurant',
+          venueSlug: 'demo-cafe',
           token: 'demo789',
-          tableLabel: 'Table 3',
-          description: 'Demo token for testing restaurant menu'
+          tableLabel: 'Table B1',
+          description: 'Demo token for Blue Door Café'
         }
       ]);
     } finally {
@@ -227,7 +227,7 @@ const TestDeepLinks: React.FC = () => {
             
             <Button
               variant="outline"
-              onClick={() => copyToClipboard(`${currentOrigin}/d/demo-restaurant`)}
+              onClick={() => copyToClipboard(`${currentOrigin}/d/demo-cafe`)}
             >
               <Copy className="h-4 w-4 mr-2" />
               Base Menu URL
@@ -237,14 +237,14 @@ const TestDeepLinks: React.FC = () => {
           <div className="text-sm text-muted-foreground space-y-1">
             <p><strong>Base URL:</strong></p>
             <code className="bg-muted px-2 py-1 rounded text-xs break-all">
-              {currentOrigin}/d/demo-restaurant
+              {currentOrigin}/d/demo-cafe
             </code>
             <Button
               variant="ghost"
               size="sm"
               onClick={() => {
                 if (typeof window !== 'undefined' && currentOrigin) {
-                  window.open(`${currentOrigin}/d/demo-restaurant`, '_blank');
+                  window.open(`${currentOrigin}/d/demo-cafe`, '_blank');
                 }
               }}
               className="ml-2"

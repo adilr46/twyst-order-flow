@@ -5,6 +5,24 @@ import { ENV } from '@/env'
 export function middleware(request: NextRequest) {
   const { pathname, searchParams } = request.nextUrl
 
+  // Basic Auth protection for FOH routes
+  const protectedPaths = [/^\/foh\//, /^\/api\/foh\//];
+  const needsAuth = protectedPaths.some((re) => re.test(pathname));
+  
+  if (needsAuth) {
+    const auth = request.headers.get('authorization');
+    const user = ENV.FOH_BASIC_USER;
+    const pass = ENV.FOH_BASIC_PASS;
+    const expected = 'Basic ' + Buffer.from(`${user}:${pass}`).toString('base64');
+
+    if (auth !== expected) {
+      return new NextResponse('Authentication required', {
+        status: 401,
+        headers: { 'WWW-Authenticate': 'Basic realm="FOH"' },
+      });
+    }
+  }
+
   // Protect /dev-launch routes
   if (pathname.startsWith('/dev-launch')) {
     // Block in production unless demo mode is explicitly enabled

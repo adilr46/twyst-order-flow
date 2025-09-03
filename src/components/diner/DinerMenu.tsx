@@ -1,25 +1,31 @@
 "use client";
 
-import React, { useState, useMemo, useEffect, useRef } from 'react';
-
+import React, { useState, useMemo, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Search, Filter, MapPin, Info } from 'lucide-react';
+import { Search, MapPin, Plus, Minus } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Card } from '@/components/ui/card';
-import { MenuItemCard } from '@/components/menu/MenuItemCard';
-import AppShell from '@/components/diner/AppShell';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import NavCartButton from '@/components/diner/NavCartButton';
+import CategoryTabs from '@/components/diner/CategoryTabs';
+import MenuItemCard from '@/components/diner/MenuItemCard';
+import StickyCheckoutBar from '@/components/diner/StickyCheckoutBar';
 import { MenuItem } from '@/types';
 import { useVenue } from '@/hooks/useVenue';
 import { getMenuItems } from '@/lib/data-layer';
 import { useSession } from '@/contexts/SessionContext';
+import { useCart } from '@/contexts/CartContext';
+import { useRouter } from 'next/navigation';
+import { useToast } from '@/hooks/use-toast';
 import { getTokenFromUrl } from '@/utils/token';
-import { twystSelfCheck } from '@/lib/session-manager';
-import { toErrorMessage } from '@/lib/format';
+import { toErrorMessage, formatMoney } from '@/lib/format';
+import { supabase } from '@/lib/supabase';
+import { buildTabsFromItems, filterItemsByTab, countPerTab, FIXED_CATEGORY_ORDER, toTitleCase, type FixedCategory } from '@/utils/categoryOrder';
+import { buildOrderPayload } from '@/utils/buildOrderPayload';
+import { startCheckout } from '@/lib/checkout';
+import { devLog } from '@/lib/devLog';
 
 interface DinerMenuProps {
   venueSlug: string;
@@ -30,19 +36,15 @@ const DinerMenu: React.FC<DinerMenuProps> = ({ venueSlug }) => {
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeCategory, setActiveCategory] = useState<string>('');
-  const [filterCategory, setFilterCategory] = useState<string>('');
-  const [cart, setCart] = useState<Array<{
-    id: string;
-    name: string;
-    price_cents: number;
-    quantity: number;
-    notes?: string;
-  }>>([]);
+  const [selectedTab, setSelectedTab] = useState<FixedCategory>("All");
+  const [isCartOpen, setIsCartOpen] = useState(false);
   
   const { venue, loading: venueLoading, error: venueError } = useVenue(venueSlug);
   const { session } = useSession();
-  const containerRef = useRef<HTMLDivElement>(null);
+  const { cart, addToCart, updateQuantity, removeFromCart, clearCart } = useCart();
+  const { toast } = useToast();
+  const router = useRouter();
+  const [isProcessing, setIsProcessing] = useState(false);
 
   // Self-check on mount
   useEffect(() => {
@@ -50,7 +52,7 @@ const DinerMenu: React.FC<DinerMenuProps> = ({ venueSlug }) => {
       try {
         const token = getTokenFromUrl();
         if (token) {
-          await twystSelfCheck();
+          // await twystSelfCheck(); // Not needed for pilot
         }
       } catch (error) {
         console.error('Self-check failed:', error);
@@ -80,16 +82,26 @@ const DinerMenu: React.FC<DinerMenuProps> = ({ venueSlug }) => {
     fetchMenu();
   }, [venue?.id]);
 
-  // Filter and search logic
-  const filteredItems = useMemo(() => {
-    let items = menuItems;
+  // State & derived data using new robust utils
+  const items = menuItems ?? [];
+  const tabs = buildTabsFromItems(items);
+  const counts = countPerTab(items);
 
-    // Filter by category
-    if (filterCategory) {
-      items = items.filter(item => item.category === filterCategory);
+  // Fallback: if current tab has 0 items but others have >0, switch to the first with items
+  useEffect(() => {
+    const currentCount = counts[selectedTab] ?? 0;
+    if (currentCount > 0) return;
+    for (const t of ["Appetizers","Mains","Desserts","Drinks","All"] as FixedCategory[]) {
+      if ((counts[t] ?? 0) > 0) { setSelectedTab(t); break; }
     }
+  }, [JSON.stringify(counts), selectedTab]);
 
-    // Search filter
+  // Filter items by selected tab and search
+  const filteredItems = useMemo(() => {
+    // Start with tab-filtered items
+    let items = filterItemsByTab(menuItems, selectedTab);
+
+    // Apply search filter
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       items = items.filter(item =>
@@ -100,216 +112,460 @@ const DinerMenu: React.FC<DinerMenuProps> = ({ venueSlug }) => {
     }
 
     return items;
-  }, [menuItems, filterCategory, searchQuery]);
+  }, [menuItems, selectedTab, searchQuery]);
 
-  // Group items by category
+  // Group filtered items by category for display
   const groupedItems = useMemo(() => {
-    return filteredItems.reduce((acc, item) => {
+    const grouped = filteredItems.reduce((acc, item) => {
       if (!acc[item.category]) {
         acc[item.category] = [];
       }
       acc[item.category].push(item);
       return acc;
     }, {} as Record<string, MenuItem[]>);
+    
+    return grouped;
   }, [filteredItems]);
 
-  // Get unique categories
-  const categories = useMemo(() => {
-    const cats = [...new Set(menuItems.map(item => item.category))];
-    return cats.sort();
-  }, [menuItems]);
+  // Cart calculations
+  const cartCount = useMemo(() => 
+    cart.items.reduce((sum, item) => sum + item.quantity, 0), 
+    [cart.items]
+  );
 
-  const addToCart = (item: MenuItem, quantity: number, notes?: string) => {
-    setCart(prev => {
-      const existingIndex = prev.findIndex(cartItem => cartItem.id === item.id);
-      
-      if (existingIndex > -1) {
-        const updated = [...prev];
-        updated[existingIndex]!.quantity += quantity;
-        if (notes !== undefined) updated[existingIndex]!.notes = notes;
-        return updated;
-      }
-      
-      return [...prev, {
-        id: item.id,
-        name: item.name,
-        price_cents: item.price_cents,
-        quantity,
-        ...(notes !== undefined && { notes })
-      }];
+  // Get quantity for a specific item
+  const getItemQuantity = (itemId: string) => {
+    const cartItem = cart.items.find(item => item.id === itemId);
+    return cartItem?.quantity || 0;
+  };
+
+  // Cart handlers
+  const handleAddToCart = (item: MenuItem) => {
+    addToCart({
+      id: item.id,
+      name: item.name,
+      description: item.description,
+      price_cents: item.price_cents,
+      category: item.category,
+      image: item.image,
+      available: item.available,
+      dietary: item.dietary,
+      quantity: 1,
+      specialInstructions: undefined
     });
   };
 
-  if (venueLoading) {
+  const handleIncreaseQuantity = (itemId: string) => {
+    const currentQty = getItemQuantity(itemId);
+    updateQuantity(itemId, currentQty + 1);
+  };
+
+  const handleDecreaseQuantity = (itemId: string) => {
+    const currentQty = getItemQuantity(itemId);
+    if (currentQty > 1) {
+      updateQuantity(itemId, currentQty - 1);
+    } else {
+      removeFromCart(itemId);
+    }
+  };
+  const handleCheckout = async () => {
+    devLog('checkout-click', { cartSize: cart.items.length });
+    
+    if (cart.items.length === 0) {
+      devLog('checkout:step1', 'Cart empty - returning');
+      toast({
+        title: "Cart is empty",
+        description: "Add some items to your cart first!",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    devLog('checkout:debug', { 
+      hasVenue: !!venue, 
+      hasSession: !!session,
+      venueId: venue?.id,
+      sessionId: session?.sessionId 
+    });
+
+    if (!venue || !session) {
+      devLog('checkout:step2', 'Session/venue validation failed', {
+        hasVenue: !!venue,
+        hasSession: !!session,
+        sessionError: session ? null : 'No session available'
+      });
+
+      let errorMessage = "Please refresh the page and try again.";
+      if (!venue) {
+        errorMessage = "Venue information is not available. Please refresh the page.";
+      } else if (!session) {
+        errorMessage = "Table session is not available. Please scan the QR code again.";
+      }
+
+      toast({
+        title: "Session error",
+        description: errorMessage,
+        variant: "destructive"
+      });
+      return;
+    }
+
+    devLog('checkout:step3', 'Session/venue validation passed');
+
+  
+
+
+
+
+    setIsProcessing(true);
+
+    try {
+      // Step 1: Create order via Edge Function FIRST (with venue_id)
+      const orderPayload = buildOrderPayload(cart, {
+        table_session_id: session.sessionId, // Use the resolved session ID
+        venue_id: venue.id,
+        tax_rate_bps: 2000, // 20% VAT
+        service_fee_bps: 200   // 2% service fee
+      });
+
+      devLog('checkout:creating-order', { 
+        venueId: venue.id, 
+        sessionId: session.sessionId?.slice(0, 8),
+        total: orderPayload.total_cents 
+      });
+
+      const { data, error } = await supabase.functions.invoke('create-order', {
+        body: orderPayload
+      });
+
+      if (error) {
+        console.error('Order creation failed:', error);
+        throw new Error(`Failed to create order: ${error.message}`);
+      }
+
+      const orderId = data.order_id || data.orderId;
+      if (!orderId) {
+        throw new Error('No order ID returned from create-order function');
+      }
+
+      devLog('checkout:order-created', { orderId: orderId?.slice(0, 8) });
+
+      // Step 2: Create Stripe checkout session with existing order
+      const checkoutCart = cart.items.map(item => ({
+        id: item.id,
+        name: item.name,
+        unit_price_cents: item.price_cents,
+        quantity: item.quantity,
+        notes: item.specialInstructions || null
+      }));
+
+      // Step 3: Close cart drawer but DON'T clear cart yet
+      setIsCartOpen(false);
+
+      // Step 4: Create Stripe session with order context - simplified
+      await startCheckout(venue.slug, checkoutCart, orderId);
+
+      // Step 5: Clear cart ONLY after successful Stripe redirect
+      clearCart();
+
+    } catch (error: any) {
+      console.error('Checkout failed:', error);
+      toast({
+        title: "Checkout failed",
+        description: error.message || "Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  if (venueLoading || isLoading) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="space-y-4">
-          <Skeleton className="h-8 w-64" />
-          <Skeleton className="h-4 w-96" />
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <Card key={i} className="p-4">
-                <Skeleton className="h-32 w-full mb-4" />
-                <Skeleton className="h-4 w-3/4 mb-2" />
-                <Skeleton className="h-3 w-full mb-4" />
-                <Skeleton className="h-8 w-20" />
-              </Card>
-            ))}
+      <div className="min-h-screen bg-gray-50">
+        <div className="max-w-screen-sm mx-auto px-4 py-6">
+          <div className="space-y-6">
+            <Skeleton className="h-8 w-64" />
+            <Skeleton className="h-12 w-full rounded-md" />
+            <div className="flex gap-2">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <Skeleton key={i} className="h-8 w-20 rounded-md" />
+              ))}
+            </div>
+            <div className="grid gap-3">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="rounded-2xl border border-gray-200 bg-white p-4 space-y-3">
+                  <Skeleton className="h-4 w-3/4" />
+                  <Skeleton className="h-3 w-full" />
+                  <Skeleton className="h-9 w-20 ml-auto" />
+                </div>
+              ))}
+            </div>
           </div>
         </div>
+      </div>
+    );
+  }
+
+  // Guard against invalid menu items
+  if (!Array.isArray(menuItems)) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+        <div className="p-4 text-sm opacity-70">No menu items yet.</div>
       </div>
     );
   }
 
   if (venueError || !venue) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <Alert>
-          <AlertDescription>
-            {venueError ? toErrorMessage(venueError) : 'Venue not found'}
-          </AlertDescription>
-        </Alert>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-center space-y-6 max-w-md"
+        >
+          <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mx-auto">
+            <MapPin className="h-8 w-8 text-gray-400" />
+          </div>
+          <div className="space-y-2">
+            <h2 className="text-xl font-semibold">Venue Not Found</h2>
+            <p className="text-gray-600">
+              {venueError ? toErrorMessage(venueError) : `We couldn't find a venue with the slug "${venueSlug}".`}
+            </p>
+          </div>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <Button onClick={() => window.location.reload()} variant="outline">
+              Try Again
+            </Button>
+            <Button onClick={() => window.location.href = '/'}>
+              Go Home
+            </Button>
+          </div>
+        </motion.div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <Alert>
-          <AlertDescription>{toErrorMessage(error)}</AlertDescription>
-        </Alert>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-center space-y-6 max-w-md"
+        >
+          <Alert>
+            <AlertDescription>
+              {toErrorMessage(error)}
+            </AlertDescription>
+          </Alert>
+          <Button onClick={() => window.location.reload()} variant="outline">
+            Try Again
+          </Button>
+        </motion.div>
       </div>
     );
   }
 
   return (
-    <AppShell
-      title={venue.name}
-      showCategoryNav={true}
-      categories={categories.map(cat => ({ id: cat, label: cat }))}
-      activeCategory={activeCategory || ''}
-      onCategoryChange={setActiveCategory}
-      cartItems={cart.map(item => ({
-        ...item,
-        price: item.price_cents
-      }))}
-      totalAmount={cart.reduce((total, item) => total + (item.price_cents * item.quantity), 0)}
-      showCart={cart.length > 0}
-      onCheckout={() => {
-        // TODO: Implement checkout
-        console.log('Checkout clicked');
-      }}
-      onUpdateQuantity={(itemId, quantity) => {
-        setCart(prev => prev.map(item => 
-          item.id === itemId ? { ...item, quantity } : item
-        ));
-      }}
-      onRemoveItem={(itemId) => {
-        setCart(prev => prev.filter(item => item.id !== itemId));
-      }}
-    >
-      <div className="space-y-6" ref={containerRef}>
-        {/* Header */}
-        <div className="space-y-4">
-          <div className="flex items-center space-x-2">
-            <MapPin className="h-5 w-5 text-muted-foreground" />
-            <h1 className="text-2xl font-bold">{venue.name}</h1>
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <header className="sticky top-0 z-30 bg-white border-b border-gray-200">
+        <div className="max-w-screen-sm mx-auto px-4 py-3">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-lg font-semibold tracking-tight text-gray-900">
+                {toTitleCase(venue.name)}
+              </h1>
+              {session?.table && (
+                <p className="text-sm text-gray-500">
+                  Table {session.table}
+                </p>
+              )}
+            </div>
+            
+            <Sheet open={isCartOpen} onOpenChange={setIsCartOpen}>
+              <SheetTrigger asChild>
+                <NavCartButton 
+                  count={cartCount} 
+                  onOpen={() => setIsCartOpen(true)} 
+                />
+              </SheetTrigger>
+              <SheetContent side="right" className="w-full sm:max-w-md p-0 flex flex-col">
+                <SheetHeader className="px-4 py-4 border-b">
+                  <SheetTitle>Your Order</SheetTitle>
+                  {session?.table && (
+                    <p className="text-sm text-gray-500">Table {session.table}</p>
+                  )}
+                </SheetHeader>
+                
+                {/* Cart Items - Scrollable */}
+                <div className="flex-1 overflow-auto px-4 py-4">
+                  {cart.items.length === 0 ? (
+                    <div className="text-center py-8">
+                      <p className="text-gray-500">Your cart is empty</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {cart.items.map((item) => (
+                        <div key={item.id} className="flex items-start justify-between p-3 border rounded-lg">
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-medium truncate">{item.name}</h4>
+                            <p className="text-sm text-gray-500">
+                              {formatMoney(item.price_cents)} × {item.quantity}
+                            </p>
+                            <p className="text-sm font-medium">
+                              {formatMoney(item.price_cents * item.quantity)}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-2 ml-3">
+                            <motion.button
+                              whileTap={{ scale: 0.92 }}
+                              className="h-8 w-8 flex items-center justify-center rounded-lg border border-gray-300 text-gray-700 bg-white hover:bg-red-600 hover:text-white active:bg-red-700 transition-colors duration-150"
+                              onClick={() => handleDecreaseQuantity(item.id)}
+                              aria-label={`Decrease quantity of ${item.name}`}
+                            >
+                              <Minus className="h-3 w-3" />
+                            </motion.button>
+                            <span className="w-6 text-center text-sm font-medium">{item.quantity}</span>
+                            <motion.button
+                              whileTap={{ scale: 0.92 }}
+                              className="h-8 w-8 flex items-center justify-center rounded-lg border border-gray-300 text-gray-700 bg-white hover:bg-green-600 hover:text-white active:bg-green-700 transition-colors duration-150"
+                              onClick={() => handleIncreaseQuantity(item.id)}
+                              aria-label={`Increase quantity of ${item.name}`}
+                            >
+                              <Plus className="h-3 w-3" />
+                            </motion.button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Bottom Section - Totals and Buttons */}
+                {cart.items.length > 0 && (
+                  <div className="border-t bg-white px-4 py-4 space-y-4">
+                    {/* Subtotal, Service Fee, VAT, Total Breakdown */}
+                    <div className="space-y-2 text-sm">
+                      <div className="flex items-center justify-between">
+                        <span className="text-gray-600">Subtotal:</span>
+                        <span>{formatMoney(cart.totalAmount)}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-gray-600">Service Fee (2%):</span>
+                        <span>{formatMoney(Math.round(cart.totalAmount * 0.02))}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-gray-600">VAT (20%):</span>
+                        <span>{formatMoney(Math.round(cart.totalAmount * 0.20))}</span>
+                      </div>
+                      <div className="border-t pt-2">
+                        <div className="flex items-center justify-between text-lg font-semibold">
+                          <span>Total:</span>
+                          <span>{formatMoney(Math.round(cart.totalAmount * 1.22))}</span>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-3">
+                      <motion.button
+                        onClick={handleCheckout}
+                        disabled={isProcessing}
+                        whileHover={{ scale: 1.02, y: -2 }}
+                        whileTap={{ scale: 0.98 }}
+                        className="w-full h-11 bg-blue-600 hover:bg-blue-700 text-white disabled:bg-gray-200 disabled:text-gray-400 transition-all duration-200 rounded-lg font-medium shadow-lg hover:shadow-xl"
+                      >
+                        {isProcessing ? 'Processing...' : 'Checkout'}
+                      </motion.button>
+                      
+                      <div className="w-full flex justify-center">
+                        <button
+                          onClick={clearCart}
+                          className="text-red-500 text-sm font-medium hover:underline"
+                        >
+                          Clear Cart
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </SheetContent>
+            </Sheet>
           </div>
-          
-          {/* Venue description removed - not available in current venue type */}
-
-          {session?.table && (
-            <Badge variant="outline" className="w-fit">
-              {session.table}
-            </Badge>
-          )}
         </div>
+      </header>
 
-        {/* Search and Filters */}
-        <div className="space-y-4">
+      {/* Main Content */}
+      <main className="max-w-screen-sm mx-auto px-4 pb-[calc(env(safe-area-inset-bottom)+16px)]">
+        {/* Search Bar */}
+        <div className="py-4">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
             <Input
               placeholder="Search menu items..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
+              className="pl-10 h-12 rounded-2xl border-gray-200"
             />
           </div>
-
-          {categories.length > 1 && (
-            <div className="flex space-x-2 overflow-x-auto pb-2">
-              <Button
-                variant={filterCategory === '' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setFilterCategory('')}
-              >
-                All
-              </Button>
-              {categories.map((category) => (
-                <Button
-                  key={category}
-                  variant={filterCategory === category ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setFilterCategory(category)}
-                  className="whitespace-nowrap"
-                >
-                  {category}
-                </Button>
-              ))}
-            </div>
-          )}
         </div>
+
+        {/* Category Tabs */}
+        {tabs.length > 1 && (
+          <CategoryTabs
+            tabs={tabs}
+            active={selectedTab}
+            onChange={setSelectedTab}
+            counts={counts}
+          />
+        )}
 
         {/* Menu Items */}
         {isLoading ? (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-3 mt-6">
             {Array.from({ length: 6 }).map((_, i) => (
-              <Card key={i} className="p-4">
-                <Skeleton className="h-32 w-full mb-4" />
-                <Skeleton className="h-4 w-3/4 mb-2" />
-                <Skeleton className="h-3 w-full mb-4" />
-                <Skeleton className="h-8 w-20" />
-              </Card>
+              <div key={i} className="rounded-2xl border border-gray-200 bg-white p-4 space-y-3">
+                <Skeleton className="h-4 w-3/4" />
+                <Skeleton className="h-3 w-full" />
+                <Skeleton className="h-9 w-20 ml-auto" />
+              </div>
             ))}
           </div>
         ) : Object.keys(groupedItems).length === 0 ? (
           <div className="text-center py-12">
             <div className="space-y-2">
               <h3 className="text-lg font-medium">No items found</h3>
-              <p className="text-muted-foreground">
-                {searchQuery || filterCategory
-                  ? 'Try adjusting your search or filters'
+              <p className="text-gray-500">
+                {searchQuery 
+                  ? 'Try adjusting your search'
                   : 'No menu items available at this time'}
               </p>
             </div>
           </div>
         ) : (
-          <div className="space-y-8">
+          <div className="space-y-6 mt-6">
             {Object.entries(groupedItems).map(([category, items]) => (
               <motion.section
                 key={category}
-                id={`category-${category.toLowerCase().replace(/\s+/g, '-')}`}
-                className="space-y-4"
+                className="space-y-2"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3 }}
               >
-                <div className="flex items-center justify-between">
-                  <h2 className="text-xl font-semibold">{category}</h2>
-                  <Badge variant="secondary">
-                    {items.length} item{items.length !== 1 ? 's' : ''}
-                  </Badge>
-                </div>
-
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                <h2 className="text-xl font-semibold mt-6 mb-2">
+                  {toTitleCase(category)}
+                </h2>
+                
+                <div className="grid gap-3">
                   {items.map((item) => (
                     <MenuItemCard
                       key={item.id}
                       item={item}
-                      disabled={item.available === false}
-                      onAddToCart={(quantity, notes) => addToCart(item, quantity, notes)}
+                      qty={getItemQuantity(item.id)}
+                      onAdd={() => handleAddToCart(item)}
+                      onInc={() => handleIncreaseQuantity(item.id)}
+                      onDec={() => handleDecreaseQuantity(item.id)}
                     />
                   ))}
                 </div>
@@ -317,8 +573,16 @@ const DinerMenu: React.FC<DinerMenuProps> = ({ venueSlug }) => {
             ))}
           </div>
         )}
-      </div>
-    </AppShell>
+      </main>
+
+      {/* Sticky Checkout Bar */}
+      <StickyCheckoutBar
+        count={cartCount}
+        total={cart.totalAmount}
+        onCheckout={handleCheckout}
+        onClear={cartCount > 0 ? clearCart : undefined}
+      />
+    </div>
   );
 };
 

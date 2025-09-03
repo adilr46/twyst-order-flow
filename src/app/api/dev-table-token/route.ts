@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ENV } from '@/env';
 
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export async function GET(req: NextRequest) {
   try {
     // Only allow in development or when demo mode is explicitly enabled
@@ -17,22 +21,22 @@ export async function GET(req: NextRequest) {
     // Generate demo table tokens for testing
     const demoTokens = [
       {
-        venueSlug: 'demo-restaurant',
+        venueSlug: 'demo-cafe',
         token: 'demo123',
-        tableLabel: 'Table 1',
-        description: 'Demo token for testing restaurant menu'
+        tableLabel: 'Table A1',
+        description: 'Demo token for Blue Door Café'
       },
       {
-        venueSlug: 'demo-restaurant',
+        venueSlug: 'demo-cafe',
         token: 'demo456',
-        tableLabel: 'Table 2',
-        description: 'Demo token for testing restaurant menu'
+        tableLabel: 'Table A2',
+        description: 'Demo token for Blue Door Café'
       },
       {
-        venueSlug: 'demo-restaurant',
+        venueSlug: 'demo-cafe',
         token: 'demo789',
-        tableLabel: 'Table 3',
-        description: 'Demo token for testing restaurant menu'
+        tableLabel: 'Table B1',
+        description: 'Demo token for Blue Door Café'
       }
     ];
 

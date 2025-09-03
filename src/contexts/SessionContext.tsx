@@ -28,9 +28,11 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
 
   const resolveSession = async () => {
     const venueSlug = getVenueSlugFromPath();
+    console.log('🔍 Resolving session for venue:', venueSlug);
     
     // Only resolve for venue paths
     if (!venueSlug) {
+      console.log('❌ No venue slug in path');
       setSession(null);
       setError(null);
       setLoading(false);
@@ -38,12 +40,13 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
     }
     
     const tableToken = getTokenFromUrl();
+    console.log('🎫 Table token from URL:', tableToken);
     
     if (!tableToken) {
       // Try to recover session from storage
       const recoveredSession = recoverSessionFromStorage(venueSlug);
       if (recoveredSession) {
-        console.log('SessionContext: Recovered session from storage');
+        console.log('✅ Recovered session from storage:', recoveredSession);
         setSession(recoveredSession);
         setError(null);
         setLoading(false);
@@ -53,6 +56,7 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
         return;
       }
       
+      console.log('❌ No table token and no recovered session');
       // No table token and no recovery - this is a direct venue access without a specific table
       setSession(null);
       setError(null);
@@ -65,18 +69,30 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
       setError(null);
       
       // Use the resolve-session edge function for server validation
+      console.log('🔄 Calling resolve-session Edge Function with token:', tableToken);
       const { data, error: apiError } = await supabase.functions.invoke('resolve-session', {
         body: { token: tableToken }
       });
 
+      console.log('📦 Edge Function response:', { data, error: apiError });
+
       if (apiError || !data) {
-        console.error('SessionContext: Server validation failed:', apiError);
-        
+        console.error('❌ Server validation failed:', apiError);
+
         // Determine error type from response
         let errorType = 'invalid_token';
-        if (apiError?.message?.includes('unknown_token')) errorType = 'unknown_token';
-        else if (apiError?.message?.includes('expired')) errorType = 'expired_session';
-        
+        if (apiError?.message?.includes('unknown_token')) {
+          errorType = 'unknown_token';
+        } else if (apiError?.message?.includes('expired')) {
+          errorType = 'expired_session';
+        } else if (apiError?.message?.includes('server_error') ||
+                   apiError?.message?.includes('Missing required') ||
+                   apiError?.message?.includes('Internal server error')) {
+          errorType = 'server_error';
+          console.error('🚨 Server configuration error detected:', apiError?.message);
+        }
+
+        console.log('❌ Setting error:', errorType);
         setError(errorType);
         setSession(null);
         return;
@@ -109,7 +125,18 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
       
     } catch (err: any) {
       console.error('SessionContext: Session resolution failed:', err);
-      setError(err.message || 'Failed to resolve table session');
+
+      // Provide more specific error messages based on the error type
+      let errorMessage = 'Failed to resolve table session';
+      if (err.message?.includes('fetch')) {
+        errorMessage = 'network_error';
+      } else if (err.message?.includes('Missing required environment')) {
+        errorMessage = 'server_error';
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+
+      setError(errorMessage);
       setSession(null);
     } finally {
       setLoading(false);

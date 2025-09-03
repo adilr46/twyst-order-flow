@@ -1,5 +1,6 @@
 export const TOKEN_QUERY_KEY = 't';
-export const TOKEN_REGEX = /^[a-f0-9]{32}$/i;
+// Allow both 32-char hex tokens and demo tokens
+export const TOKEN_REGEX = /^(?:[a-f0-9]{32}|demo[0-9]{3})$/i;
 
 /**
  * Validates a token format (32-char hex, case-insensitive)
@@ -16,14 +17,27 @@ export function validateToken(token: string): boolean {
  */
 export function getTokenFromUrl(url?: URL): string | null {
   const urlToUse = url || (typeof window !== 'undefined' ? new URL(window.location.href) : null);
-  if (!urlToUse) return null;
+  console.log('🔍 Getting token from URL:', urlToUse?.toString());
   
-  const token = urlToUse.searchParams.get(TOKEN_QUERY_KEY);
-  
-  if (!token || !validateToken(token)) {
+  if (!urlToUse) {
+    console.log('❌ No URL available');
     return null;
   }
   
+  const token = urlToUse.searchParams.get(TOKEN_QUERY_KEY);
+  console.log('🎫 Found token:', token);
+  
+  if (!token) {
+    console.log('❌ No token in URL');
+    return null;
+  }
+  
+  if (!validateToken(token)) {
+    console.log('❌ Invalid token format:', token);
+    return null;
+  }
+  
+  console.log('✅ Valid token found:', token);
   return token;
 }
 

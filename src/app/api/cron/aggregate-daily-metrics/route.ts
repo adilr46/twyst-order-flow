@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServiceClient } from '@/lib/supabaseServer'
+import { createServerSupabaseClient } from '@/lib/supabase'
+
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 interface AggregationResult {
   venues_processed: number
@@ -26,7 +30,7 @@ export async function GET(req: NextRequest) {
     }
 
     // Create Supabase client with service role
-    const supabaseClient = await createServiceClient()
+    const supabaseClient = createServerSupabaseClient()
 
     // Parse request parameters
     const { searchParams } = new URL(req.url)

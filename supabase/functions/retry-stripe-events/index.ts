@@ -17,8 +17,9 @@ serve(async (req) => {
     console.log("Starting Stripe events retry job");
 
     // Create Supabase client with service role for full access
+// @ts-ignore -- Deno runtime
     const supabaseClient = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_DB_URL") ?? "",
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
 

@@ -1,5 +1,11 @@
 project_id = "zbfosmwzntckdrxrfwta"
 
+[functions.resolve-session]
+verify_jwt = false
+
+[functions.create-order]
+verify_jwt = false
+
 [functions.checkout]
 verify_jwt = false
 

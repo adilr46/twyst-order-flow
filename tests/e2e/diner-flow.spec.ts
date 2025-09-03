@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-const TEST_VENUE = 'demo-restaurant';
+const TEST_VENUE = 'demo-cafe';
 const TEST_TOKEN = 'demo123';
 const TEST_ORDER_ID = 'order_demo_123';
 

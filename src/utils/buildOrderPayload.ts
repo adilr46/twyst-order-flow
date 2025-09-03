@@ -3,7 +3,7 @@ import { calculateTotal, isValidPrice } from './price';
 
 export interface OrderItem {
   item_id: string;
-  qty: number;
+  quantity: number;
   unit_price_cents: number;
   notes: string | null;
   options_json: any[];
@@ -86,7 +86,7 @@ export function buildOrderPayload(cart: CartState, context: OrderContext): Order
   // Convert cart items to order items format
   const orderItems: OrderItem[] = cart.items.map(cartItem => ({
     item_id: cartItem.id,
-    qty: cartItem.quantity,
+    quantity: cartItem.quantity,
     unit_price_cents: cartItem.price_cents,
     notes: cartItem.specialInstructions || null,
     options_json: [] // Reserved for future menu customizations
@@ -95,7 +95,7 @@ export function buildOrderPayload(cart: CartState, context: OrderContext): Order
   // Calculate totals using centralized calculation
   const subtotalItems = orderItems.map(item => ({
     price_cents: item.unit_price_cents,
-    quantity: item.qty
+    quantity: item.quantity
   }));
   
   const subtotal_cents = calculateTotal(subtotalItems);
@@ -154,8 +154,8 @@ export function validateOrderPayload(payload: OrderPayload): { isValid: boolean;
       errors.push(`Item ${index + 1}: item_id is required`);
     }
 
-    if (!item.qty || item.qty <= 0) {
-      errors.push(`Item ${index + 1}: qty must be greater than 0`);
+    if (!item.quantity || item.quantity <= 0) {
+      errors.push(`Item ${index + 1}: quantity must be greater than 0`);
     }
 
     if (!isValidPrice(item.unit_price_cents)) {

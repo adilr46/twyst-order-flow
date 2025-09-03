@@ -216,6 +216,22 @@ body {
     padding-left: 1rem;
     padding-right: 1rem;
   }
+  
+  /* Ensure cart button is always visible on mobile */
+  .fixed-cart {
+    padding-bottom: var(--sa-bottom);
+  }
+  
+  /* Adjust grid layout for mobile */
+  .grid-responsive-mobile {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  
+  /* Ensure menu cards are properly sized on mobile */
+  .menu-card {
+    min-height: 200px;
+  }
 }
 
 /* Landscape mobile adjustments */

@@ -1,4 +1,6 @@
+// @ts-ignore -- Deno runtime
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+// @ts-ignore -- Deno runtime
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 const corsHeaders = {
@@ -6,6 +8,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, stripe-signature",
 };
 
+// @ts-ignore -- Deno runtime
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
@@ -15,7 +18,9 @@ serve(async (req) => {
   try {
     // Create Supabase client with service role for full access
     const supabaseClient = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
+      // @ts-ignore -- Deno runtime
+      Deno.env.get("SUPABASE_DB_URL") ?? "",
+      // @ts-ignore -- Deno runtime
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
 

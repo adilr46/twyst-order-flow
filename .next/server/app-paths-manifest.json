@@ -1,7 +1,8 @@
 {
+  "/api/dev-table-token/route": "app/api/dev-table-token/route.js",
+  "/api/venues/route": "app/api/venues/route.js",
   "/page": "app/page.js",
+  "/test-links/page": "app/test-links/page.js",
   "/test-deeplinks/page": "app/test-deeplinks/page.js",
-  "/d/[venueSlug]/page": "app/d/[venueSlug]/page.js",
-  "/dev-launch/page": "app/dev-launch/page.js",
-  "/foh/[venueSlug]/page": "app/foh/[venueSlug]/page.js"
+  "/d/[venueSlug]/page": "app/d/[venueSlug]/page.js"
 }

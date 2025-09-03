@@ -1,4 +1,4 @@
-// File: C:\Twyst\twyst-order-flow-main\src\app\d\[venueSlug]\page.tsx
+// File: C:\Users\adilr\twyst\twyst-order-flow-main\src\app\d\[venueSlug]\page.tsx
 import * as entry from '../../../../../src/app/d/[venueSlug]/page.js'
 import type { ResolvingMetadata, ResolvingViewport } from 'next/dist/lib/metadata/types/metadata-interface.js'
 

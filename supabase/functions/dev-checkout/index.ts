@@ -1,3 +1,4 @@
+// @ts-ignore -- Deno runtime
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
@@ -50,7 +51,7 @@ serve(async (req) => {
 
     // Initialize Supabase client with service role key
     const supabase = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_DB_URL") ?? "",
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
       { auth: { persistSession: false } }
     );

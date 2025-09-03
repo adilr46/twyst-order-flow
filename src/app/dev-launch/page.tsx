@@ -37,7 +37,7 @@ export default async function DevLaunchPage() {
         {/* Quick Links */}
         <div className="mb-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <a
-            href="/d/demo-table?t=demo123"
+            href="/d/demo-cafe?t=demo123" 
             target="_blank"
             rel="noopener noreferrer"
             className="p-4 border rounded-lg hover:bg-accent/50 transition-colors text-center"
@@ -59,7 +59,7 @@ export default async function DevLaunchPage() {
           </a>
           
           <a
-            href="/foh/demo-restaurant"
+            href="/foh/demo-cafe"
             target="_blank"
             rel="noopener noreferrer"
             className="p-4 border rounded-lg hover:bg-accent/50 transition-colors text-center"
