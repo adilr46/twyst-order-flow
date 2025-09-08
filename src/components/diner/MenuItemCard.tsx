@@ -85,7 +85,7 @@ export default function MenuItemCard({
       transition={{ duration: 0.12, ease: "easeOut" }}
       whileHover={{ scale: 1.01 }}
       whileTap={{ scale: 0.99 }}
-      className="bg-gray-50 rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md hover:shadow-blue-500/10 hover:scale-[1.02] transition-all duration-300"
+      className="bg-gray-50 rounded-2xl shadow-sm border border-gray-300 overflow-hidden hover:shadow-md hover:shadow-blue-500/10 hover:scale-[1.02] transition-all duration-300"
     >
       {/* Left-Right Layout */}
       <div className="flex gap-5 p-6">
