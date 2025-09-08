@@ -1,5 +1,5 @@
 "use client"
-import React, { createContext, useContext, useReducer, ReactNode, useEffect } from 'react';
+import React, { createContext, useContext, useReducer, ReactNode, useEffect, useCallback } from 'react';
 import { CartItem, CartState } from '@/types'; 
 import { calculateTotal, isValidPrice } from '@/utils/price';
 
@@ -123,6 +123,32 @@ const initialState: CartState = {
 
 export function CartProvider({ children }: { children: ReactNode }) {
   const [cart, dispatch] = useReducer(cartReducer, initialState);
+    const loadCartFromStorage = () => {
+      try {
+        if (typeof window !== 'undefined') {
+          const savedCart = localStorage.getItem('cart');
+          if (savedCart) {
+            const parsedCart = JSON.parse(savedCart);
+            dispatch({ type: 'LOAD_CART', payload: parsedCart });
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load cart from storage:', error);
+      }
+    };
+
+    const saveCartToStorage = () => {
+      try {
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('cart', JSON.stringify({
+            items: cart.items,
+            totalAmount: cart.totalAmount
+          }));
+        }
+      } catch (error) {
+        console.error('Failed to save cart to storage:', error);
+      }
+    };
 
   // Load cart from localStorage on mount
   useEffect(() => {
@@ -136,7 +162,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }, 300); // Debounce by 300ms
     
     return () => clearTimeout(timeoutId);
-  }, [cart.items, cart.totalAmount]); // Only save when items or total changes
+    }, [cart.items, cart.totalAmount]); // Only save when items or total changes
 
   const addToCart = (item: CartItem) => {
     dispatch({ type: 'ADD_ITEM', payload: item });
@@ -157,33 +183,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const toggleCart = () => {
     dispatch({ type: 'TOGGLE_CART' });
   };
-
-  const loadCartFromStorage = () => {
-    try {
-      if (typeof window !== 'undefined') {
-        const savedCart = localStorage.getItem('cart');
-        if (savedCart) {
-          const parsedCart = JSON.parse(savedCart);
-          dispatch({ type: 'LOAD_CART', payload: parsedCart });
-        }
-      }
-    } catch (error) {
-      console.error('Failed to load cart from storage:', error);
-    }
-  };
-
-  const saveCartToStorage = () => {
-    try {
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('cart', JSON.stringify({
-          items: cart.items,
-          totalAmount: cart.totalAmount
-        }));
-      }
-    } catch (error) {
-      console.error('Failed to save cart to storage:', error);
-    }
-  };
+  // ...existing code...
 
   const isCartValid = () => {
     return cart.items.length > 0 && cart.items.every(item => 

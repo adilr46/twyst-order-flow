@@ -121,15 +121,15 @@ export default function FOHOrderBoard({ venueSlug }: { venueSlug: string }) {
     };
 
     // Initialize realtime connection
-    let channel: any = null;
-    setupRealtime().then(ch => { channel = ch; });
+  let channel: any = null;
+  setupRealtime().then(ch => { channel = ch; });
 
     // ✅ Reduced polling to 15 seconds (since we have realtime)
     const pollInterval = setInterval(() => fetchOrders(false), 15000);
     
     return () => {
       if (channel) {
-        channel.unsubscribe();
+        try { channel.unsubscribe(); } catch (e) { /* noop */ }
       }
       clearInterval(pollInterval);
     };

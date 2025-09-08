@@ -107,6 +107,12 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
   handler satisfies AppPageConfig<"/foh/[venueSlug]">
 }
 
+// Validate ../../src/app/o/[shortCode]/page.tsx
+{
+  const handler = {} as typeof import("../../src/app/o/[shortCode]/page.js")
+  handler satisfies AppPageConfig<"/o/[shortCode]">
+}
+
 // Validate ../../src/app/order-status/page.tsx
 {
   const handler = {} as typeof import("../../src/app/order-status/page.js")
@@ -117,12 +123,6 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
 {
   const handler = {} as typeof import("../../src/app/page.js")
   handler satisfies AppPageConfig<"/">
-}
-
-// Validate ../../src/app/payment/success/page.tsx
-{
-  const handler = {} as typeof import("../../src/app/payment/success/page.js")
-  handler satisfies AppPageConfig<"/payment/success">
 }
 
 // Validate ../../src/app/scan-again/page.tsx
@@ -143,28 +143,10 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
   handler satisfies AppPageConfig<"/test-links">
 }
 
-// Validate ../../src/app/api/checkout/create/route.ts
+// Validate ../../src/app/api/create-checkout-session/route.ts
 {
-  const handler = {} as typeof import("../../src/app/api/checkout/create/route.js")
-  handler satisfies RouteHandlerConfig<"/api/checkout/create">
-}
-
-// Validate ../../src/app/api/checkout/success/route.ts
-{
-  const handler = {} as typeof import("../../src/app/api/checkout/success/route.js")
-  handler satisfies RouteHandlerConfig<"/api/checkout/success">
-}
-
-// Validate ../../src/app/api/cron/aggregate-daily-metrics/route.ts
-{
-  const handler = {} as typeof import("../../src/app/api/cron/aggregate-daily-metrics/route.js")
-  handler satisfies RouteHandlerConfig<"/api/cron/aggregate-daily-metrics">
-}
-
-// Validate ../../src/app/api/cron/reprocess-stuck-payments/route.ts
-{
-  const handler = {} as typeof import("../../src/app/api/cron/reprocess-stuck-payments/route.js")
-  handler satisfies RouteHandlerConfig<"/api/cron/reprocess-stuck-payments">
+  const handler = {} as typeof import("../../src/app/api/create-checkout-session/route.js")
+  handler satisfies RouteHandlerConfig<"/api/create-checkout-session">
 }
 
 // Validate ../../src/app/api/dev-auth/route.ts
@@ -191,46 +173,52 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
   handler satisfies RouteHandlerConfig<"/api/foh/orders/list">
 }
 
+// Validate ../../src/app/api/foh/update-status/route.ts
+{
+  const handler = {} as typeof import("../../src/app/api/foh/update-status/route.js")
+  handler satisfies RouteHandlerConfig<"/api/foh/update-status">
+}
+
 // Validate ../../src/app/api/health/route.ts
 {
   const handler = {} as typeof import("../../src/app/api/health/route.js")
   handler satisfies RouteHandlerConfig<"/api/health">
 }
 
-// Validate ../../src/app/api/menu/route.ts
+// Validate ../../src/app/api/menu/init/route.ts
 {
-  const handler = {} as typeof import("../../src/app/api/menu/route.js")
-  handler satisfies RouteHandlerConfig<"/api/menu">
+  const handler = {} as typeof import("../../src/app/api/menu/init/route.js")
+  handler satisfies RouteHandlerConfig<"/api/menu/init">
 }
 
-// Validate ../../src/app/api/orders/[id]/route.ts
+// Validate ../../src/app/api/orders/[shortCode]/route.ts
 {
-  const handler = {} as typeof import("../../src/app/api/orders/[id]/route.js")
-  handler satisfies RouteHandlerConfig<"/api/orders/[id]">
+  const handler = {} as typeof import("../../src/app/api/orders/[shortCode]/route.js")
+  handler satisfies RouteHandlerConfig<"/api/orders/[shortCode]">
 }
 
-// Validate ../../src/app/api/test-db/route.ts
+// Validate ../../src/app/api/venues/[slug]/route.ts
 {
-  const handler = {} as typeof import("../../src/app/api/test-db/route.js")
-  handler satisfies RouteHandlerConfig<"/api/test-db">
+  const handler = {} as typeof import("../../src/app/api/venues/[slug]/route.js")
+  handler satisfies RouteHandlerConfig<"/api/venues/[slug]">
 }
 
-// Validate ../../src/app/api/venues-admin/[venueId]/stripe/onboard/route.ts
+// Validate ../../src/app/api/webhooks/stripe/debug/route.ts
 {
-  const handler = {} as typeof import("../../src/app/api/venues-admin/[venueId]/stripe/onboard/route.js")
-  handler satisfies RouteHandlerConfig<"/api/venues-admin/[venueId]/stripe/onboard">
-}
-
-// Validate ../../src/app/api/venues/route.ts
-{
-  const handler = {} as typeof import("../../src/app/api/venues/route.js")
-  handler satisfies RouteHandlerConfig<"/api/venues">
+  const handler = {} as typeof import("../../src/app/api/webhooks/stripe/debug/route.js")
+  handler satisfies RouteHandlerConfig<"/api/webhooks/stripe/debug">
 }
 
 // Validate ../../src/app/api/webhooks/stripe/route.ts
 {
   const handler = {} as typeof import("../../src/app/api/webhooks/stripe/route.js")
   handler satisfies RouteHandlerConfig<"/api/webhooks/stripe">
+}
+
+// Validate ../../src/app/api/webhooks/stripe/test/route.ts
+{
+  const handler = {} as typeof import("../../src/app/api/webhooks/stripe/test/route.js")
+  handler satisfies RouteHandlerConfig<"/api/webhooks/stripe/test">
 }
 
 // Validate ../../src/pages/FOHOrderBoard.tsx

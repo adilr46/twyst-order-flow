@@ -46,10 +46,10 @@
       "static/chunks/main-app.js",
       "static/chunks/app/d/[venueSlug]/page.js"
     ],
-    "/api/venues/route": [
+    "/api/menu/init/route": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/api/venues/route.js"
+      "static/chunks/app/api/menu/init/route.js"
     ]
   }
 }
