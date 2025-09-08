@@ -5,7 +5,6 @@ import { motion } from 'framer-motion';
 import { AlertTriangle, Nfc, QrCode, Smartphone } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { isLikelyNFCSession } from '@/lib/session-manager';
 
 interface NFCOnlyBlockerProps {
   venueName?: string;
@@ -21,7 +20,8 @@ export const NFCOnlyBlocker: React.FC<NFCOnlyBlockerProps> = ({
   venueName, 
   venueSlug 
 }) => {
-  const isNFCDevice = isLikelyNFCSession();
+  // Simplified MVP: assume QR code for now
+  const isNFCDevice = false;
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">

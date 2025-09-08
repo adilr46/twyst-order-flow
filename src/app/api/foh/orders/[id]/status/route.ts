@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 const UpdateStatusSchema = z.object({
-  status: z.enum(['new', 'preparing', 'ready', 'completed', 'cancelled']),
+  status: z.enum(['paid', 'in_prep', 'ready', 'served', 'cancelled']),
 });
 
 export async function POST(

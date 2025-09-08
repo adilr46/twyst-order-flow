@@ -1,31 +1,26 @@
 "use client";
 
 import React, { useState, useMemo, useEffect } from 'react';
+import { Search, Plus, Minus } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { Search, MapPin, Plus, Minus } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import CartBar from '@/components/diner/CartBar';
 import NavCartButton from '@/components/diner/NavCartButton';
 import CategoryTabs from '@/components/diner/CategoryTabs';
 import MenuItemCard from '@/components/diner/MenuItemCard';
 import StickyCheckoutBar from '@/components/diner/StickyCheckoutBar';
-import { MenuItem } from '@/types';
-import { useVenue } from '@/hooks/useVenue';
-import { getMenuItems } from '@/lib/data-layer';
-import { useSession } from '@/contexts/SessionContext';
+import CheckoutSpinner from '@/components/ui/CheckoutSpinner';
+import { MenuItem, Table, Venue } from '@/types/database';
 import { useCart } from '@/contexts/CartContext';
-import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { getTokenFromUrl } from '@/utils/token';
-import { toErrorMessage, formatMoney } from '@/lib/format';
+import { formatMoney } from '@/lib/format';
+import { formatTableLabel } from '@/lib/tableLabel';
 import { supabase } from '@/lib/supabase';
-import { buildTabsFromItems, filterItemsByTab, countPerTab, FIXED_CATEGORY_ORDER, toTitleCase, type FixedCategory } from '@/utils/categoryOrder';
-import { buildOrderPayload } from '@/utils/buildOrderPayload';
-import { startCheckout } from '@/lib/checkout';
-import { devLog } from '@/lib/devLog';
+import { buildTabsFromItems, filterItemsByTab, countPerTab, type FixedCategory } from '@/utils/categoryOrder';
 
 interface DinerMenuProps {
   venueSlug: string;
@@ -38,49 +33,64 @@ const DinerMenu: React.FC<DinerMenuProps> = ({ venueSlug }) => {
   const [error, setError] = useState<string | null>(null);
   const [selectedTab, setSelectedTab] = useState<FixedCategory>("All");
   const [isCartOpen, setIsCartOpen] = useState(false);
+  const [showUnderline, setShowUnderline] = useState(false);
+  const [table, setTable] = useState<Table | null>(null);
+  const [venue, setVenue] = useState<Venue | null>(null);
   
-  const { venue, loading: venueLoading, error: venueError } = useVenue(venueSlug);
-  const { session } = useSession();
   const { cart, addToCart, updateQuantity, removeFromCart, clearCart } = useCart();
   const { toast } = useToast();
-  const router = useRouter();
   const [isProcessing, setIsProcessing] = useState(false);
 
-  // Self-check on mount
+  // Optimized menu initialization with progressive loading
   useEffect(() => {
-    const runSelfCheck = async () => {
+    const initializeMenu = async () => {
       try {
         const token = getTokenFromUrl();
-        if (token) {
-          // await twystSelfCheck(); // Not needed for pilot
+        if (!token) {
+          setError('No table token found');
+          return;
         }
-      } catch (error) {
-        console.error('Self-check failed:', error);
-      }
-    };
-    
-    runSelfCheck();
-  }, [venueSlug]);
 
-  // Fetch menu items
-  useEffect(() => {
-    const fetchMenu = async () => {
-      if (!venue?.id) return;
-      
-      try {
+        // Start loading immediately
         setIsLoading(true);
-        const items = await getMenuItems(venue.id);
-        setMenuItems(items);
+
+        // Single API call to get venue, table, and menu data
+        const response = await fetch(`/api/menu/init?venueSlug=${venueSlug}&tableToken=${token}`, {
+          // Add cache headers for faster subsequent loads
+          headers: {
+            'Cache-Control': 'max-age=300', // 5 minutes
+          }
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.json();
+          setError(errorData.error || 'Failed to load menu');
+          setIsLoading(false);
+          return;
+        }
+        
+        const data = await response.json();
+        
+        // Set venue and table first (for immediate display)
+        setVenue(data.venue);
+        setTable(data.table);
+        
+        // Flatten the menu items from categories
+        const allItems = Object.values(data.menu).flat() as MenuItem[];
+        
+        // Set all items at once to avoid duplicate key issues
+        setMenuItems(allItems);
+        setIsLoading(false);
+
       } catch (err) {
-        console.error('Failed to fetch menu:', err);
-        setError('Failed to load menu items');
-      } finally {
+        console.error('Failed to initialize menu:', err);
+        setError('Failed to initialize menu');
         setIsLoading(false);
       }
     };
 
-    fetchMenu();
-  }, [venue?.id]);
+    initializeMenu();
+  }, [venueSlug]);
 
   // State & derived data using new robust utils
   const items = menuItems ?? [];
@@ -98,175 +108,66 @@ const DinerMenu: React.FC<DinerMenuProps> = ({ venueSlug }) => {
 
   // Filter items by selected tab and search
   const filteredItems = useMemo(() => {
-    // Start with tab-filtered items
-    let items = filterItemsByTab(menuItems, selectedTab);
-
-    // Apply search filter
-    if (searchQuery) {
+    let filtered = filterItemsByTab(items, selectedTab);
+    
+    if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
-      items = items.filter(item =>
+      filtered = filtered.filter(item => 
         item.name.toLowerCase().includes(query) ||
-        item.description.toLowerCase().includes(query) ||
-        (item.dietary && item.dietary.some(tag => tag.toLowerCase().includes(query)))
+        item.description?.toLowerCase().includes(query) ||
+        item.category?.toLowerCase().includes(query)
       );
     }
-
-    return items;
-  }, [menuItems, selectedTab, searchQuery]);
-
-  // Group filtered items by category for display
-  const groupedItems = useMemo(() => {
-    const grouped = filteredItems.reduce((acc, item) => {
-      if (!acc[item.category]) {
-        acc[item.category] = [];
-      }
-      acc[item.category].push(item);
-      return acc;
-    }, {} as Record<string, MenuItem[]>);
     
-    return grouped;
-  }, [filteredItems]);
+    return filtered;
+  }, [items, selectedTab, searchQuery]);
 
-  // Cart calculations
-  const cartCount = useMemo(() => 
-    cart.items.reduce((sum, item) => sum + item.quantity, 0), 
-    [cart.items]
-  );
-
-  // Get quantity for a specific item
-  const getItemQuantity = (itemId: string) => {
-    const cartItem = cart.items.find(item => item.id === itemId);
-    return cartItem?.quantity || 0;
-  };
-
-  // Cart handlers
-  const handleAddToCart = (item: MenuItem) => {
-    addToCart({
-      id: item.id,
-      name: item.name,
-      description: item.description,
-      price_cents: item.price_cents,
-      category: item.category,
-      image: item.image,
-      available: item.available,
-      dietary: item.dietary,
-      quantity: 1,
-      specialInstructions: undefined
-    });
-  };
-
-  const handleIncreaseQuantity = (itemId: string) => {
-    const currentQty = getItemQuantity(itemId);
-    updateQuantity(itemId, currentQty + 1);
-  };
-
-  const handleDecreaseQuantity = (itemId: string) => {
-    const currentQty = getItemQuantity(itemId);
-    if (currentQty > 1) {
-      updateQuantity(itemId, currentQty - 1);
-    } else {
-      removeFromCart(itemId);
-    }
-  };
   const handleCheckout = async () => {
-    devLog('checkout-click', { cartSize: cart.items.length });
-    
-    if (cart.items.length === 0) {
-      devLog('checkout:step1', 'Cart empty - returning');
+    if (!table || !venue || cart.items.length === 0) {
       toast({
-        title: "Cart is empty",
-        description: "Add some items to your cart first!",
+        title: "Cannot checkout",
+        description: "Please ensure you have items in your cart and are at a valid table.",
         variant: "destructive"
       });
       return;
     }
-    
-    devLog('checkout:debug', { 
-      hasVenue: !!venue, 
-      hasSession: !!session,
-      venueId: venue?.id,
-      sessionId: session?.sessionId 
-    });
-
-    if (!venue || !session) {
-      devLog('checkout:step2', 'Session/venue validation failed', {
-        hasVenue: !!venue,
-        hasSession: !!session,
-        sessionError: session ? null : 'No session available'
-      });
-
-      let errorMessage = "Please refresh the page and try again.";
-      if (!venue) {
-        errorMessage = "Venue information is not available. Please refresh the page.";
-      } else if (!session) {
-        errorMessage = "Table session is not available. Please scan the QR code again.";
-      }
-
-      toast({
-        title: "Session error",
-        description: errorMessage,
-        variant: "destructive"
-      });
-      return;
-    }
-
-    devLog('checkout:step3', 'Session/venue validation passed');
-
-  
-
-
-
 
     setIsProcessing(true);
 
     try {
-      // Step 1: Create order via Edge Function FIRST (with venue_id)
-      const orderPayload = buildOrderPayload(cart, {
-        table_session_id: session.sessionId, // Use the resolved session ID
-        venue_id: venue.id,
-        tax_rate_bps: 2000, // 20% VAT
-        service_fee_bps: 200   // 2% service fee
+      // Calculate totals
+              const subtotal_cents = cart.items.reduce((sum, item) => sum + (item.price_cents * item.qty), 0);
+      const tax_cents = Math.round(subtotal_cents * 0.20); // 20% VAT
+      const total_cents = subtotal_cents + tax_cents;
+
+      // Create checkout session
+      const response = await fetch('/api/create-checkout-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          venueSlug: venue.slug,
+          tableToken: table.token,
+          items: cart.items.map(item => ({
+            id: item.id,
+            name: item.name,
+            price_cents: item.price_cents,
+                         qty: item.qty,
+          })),
+          subtotal_cents,
+          tax_cents,
+          total_cents,
+        }),
       });
 
-      devLog('checkout:creating-order', { 
-        venueId: venue.id, 
-        sessionId: session.sessionId?.slice(0, 8),
-        total: orderPayload.total_cents 
-      });
-
-      const { data, error } = await supabase.functions.invoke('create-order', {
-        body: orderPayload
-      });
-
-      if (error) {
-        console.error('Order creation failed:', error);
-        throw new Error(`Failed to create order: ${error.message}`);
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to create checkout session');
       }
 
-      const orderId = data.order_id || data.orderId;
-      if (!orderId) {
-        throw new Error('No order ID returned from create-order function');
-      }
-
-      devLog('checkout:order-created', { orderId: orderId?.slice(0, 8) });
-
-      // Step 2: Create Stripe checkout session with existing order
-      const checkoutCart = cart.items.map(item => ({
-        id: item.id,
-        name: item.name,
-        unit_price_cents: item.price_cents,
-        quantity: item.quantity,
-        notes: item.specialInstructions || null
-      }));
-
-      // Step 3: Close cart drawer but DON'T clear cart yet
-      setIsCartOpen(false);
-
-      // Step 4: Create Stripe session with order context - simplified
-      await startCheckout(venue.slug, checkoutCart, orderId);
-
-      // Step 5: Clear cart ONLY after successful Stripe redirect
-      clearCart();
+      const { url } = await response.json();
+      
+      // Redirect to Stripe checkout
+      window.location.href = url;
 
     } catch (error: any) {
       console.error('Checkout failed:', error);
@@ -280,311 +181,242 @@ const DinerMenu: React.FC<DinerMenuProps> = ({ venueSlug }) => {
     }
   };
 
-  if (venueLoading || isLoading) {
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <div className="max-w-screen-sm mx-auto px-4 py-6">
-          <div className="space-y-6">
-            <Skeleton className="h-8 w-64" />
-            <Skeleton className="h-12 w-full rounded-md" />
-            <div className="flex gap-2">
-              {Array.from({ length: 4 }).map((_, i) => (
-                <Skeleton key={i} className="h-8 w-20 rounded-md" />
-              ))}
+        <div className="max-w-4xl mx-auto p-4">
+          {/* Show venue/table info immediately if available */}
+          {venue && table && (
+            <div className="mb-6">
+              <h1 className="text-2xl font-bold text-gray-900">{venue.name}</h1>
+              <p className="text-gray-600">Table {formatTableLabel(table.label)}</p>
             </div>
-            <div className="grid gap-3">
-              {Array.from({ length: 6 }).map((_, i) => (
-                <div key={i} className="rounded-2xl border border-gray-200 bg-white p-4 space-y-3">
-                  <Skeleton className="h-4 w-3/4" />
-                  <Skeleton className="h-3 w-full" />
-                  <Skeleton className="h-9 w-20 ml-auto" />
-                </div>
-              ))}
-            </div>
+          )}
+          
+          {/* Lightweight skeleton for menu items */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {[...Array(6)].map((_, i) => (
+              <div key={`skeleton-${i}`} className="bg-white rounded-xl p-4 animate-pulse">
+                <div className="h-32 bg-gray-200 rounded-lg mb-3"></div>
+                <div className="h-4 bg-gray-200 rounded mb-2"></div>
+                <div className="h-3 bg-gray-200 rounded w-3/4 mb-2"></div>
+                <div className="h-6 bg-gray-200 rounded w-1/2"></div>
+              </div>
+            ))}
           </div>
         </div>
-      </div>
-    );
-  }
-
-  // Guard against invalid menu items
-  if (!Array.isArray(menuItems)) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
-        <div className="p-4 text-sm opacity-70">No menu items yet.</div>
-      </div>
-    );
-  }
-
-  if (venueError || !venue) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-center space-y-6 max-w-md"
-        >
-          <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mx-auto">
-            <MapPin className="h-8 w-8 text-gray-400" />
-          </div>
-          <div className="space-y-2">
-            <h2 className="text-xl font-semibold">Venue Not Found</h2>
-            <p className="text-gray-600">
-              {venueError ? toErrorMessage(venueError) : `We couldn't find a venue with the slug "${venueSlug}".`}
-            </p>
-          </div>
-          <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <Button onClick={() => window.location.reload()} variant="outline">
-              Try Again
-            </Button>
-            <Button onClick={() => window.location.href = '/'}>
-              Go Home
-            </Button>
-          </div>
-        </motion.div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-center space-y-6 max-w-md"
-        >
-          <Alert>
-            <AlertDescription>
-              {toErrorMessage(error)}
-            </AlertDescription>
-          </Alert>
-          <Button onClick={() => window.location.reload()} variant="outline">
-            Try Again
-          </Button>
-        </motion.div>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <Alert className="max-w-md">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
+
+  if (!table || !venue) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <Alert className="max-w-md">
+          <AlertDescription>Table or venue not found</AlertDescription>
+        </Alert>
       </div>
     );
   }
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="sticky top-0 z-30 bg-white border-b border-gray-200">
-        <div className="max-w-screen-sm mx-auto px-4 py-3">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-lg font-semibold tracking-tight text-gray-900">
-                {toTitleCase(venue.name)}
-              </h1>
-              {session?.table && (
-                <p className="text-sm text-gray-500">
-                  Table {session.table}
-                </p>
-              )}
+      {/* Sticky Header Section */}
+      <div className="sticky top-0 z-40 bg-white shadow-sm border-b border-gray-200">
+        <div className="max-w-4xl mx-auto p-4">
+          {/* Restaurant Name & Table */}
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-3">
+              <h1 className="text-3xl font-bold text-gray-900 tracking-tight">{venue.name}</h1>
+              <span className="px-3 py-1.5 text-sm font-medium text-gray-700 bg-[#F2F4F7] rounded-full flex items-center justify-center">
+                {formatTableLabel(table.label)}
+              </span>
             </div>
-            
-            <Sheet open={isCartOpen} onOpenChange={setIsCartOpen}>
-              <SheetTrigger asChild>
-                <NavCartButton 
-                  count={cartCount} 
-                  onOpen={() => setIsCartOpen(true)} 
-                />
-              </SheetTrigger>
-              <SheetContent side="right" className="w-full sm:max-w-md p-0 flex flex-col">
-                <SheetHeader className="px-4 py-4 border-b">
-                  <SheetTitle>Your Order</SheetTitle>
-                  {session?.table && (
-                    <p className="text-sm text-gray-500">Table {session.table}</p>
-                  )}
-                </SheetHeader>
-                
-                {/* Cart Items - Scrollable */}
-                <div className="flex-1 overflow-auto px-4 py-4">
-                  {cart.items.length === 0 ? (
-                    <div className="text-center py-8">
-                      <p className="text-gray-500">Your cart is empty</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      {cart.items.map((item) => (
-                        <div key={item.id} className="flex items-start justify-between p-3 border rounded-lg">
-                          <div className="flex-1 min-w-0">
-                            <h4 className="font-medium truncate">{item.name}</h4>
-                            <p className="text-sm text-gray-500">
-                              {formatMoney(item.price_cents)} × {item.quantity}
-                            </p>
-                            <p className="text-sm font-medium">
-                              {formatMoney(item.price_cents * item.quantity)}
-                            </p>
-                          </div>
-                          <div className="flex items-center gap-2 ml-3">
-                            <motion.button
-                              whileTap={{ scale: 0.92 }}
-                              className="h-8 w-8 flex items-center justify-center rounded-lg border border-gray-300 text-gray-700 bg-white hover:bg-red-600 hover:text-white active:bg-red-700 transition-colors duration-150"
-                              onClick={() => handleDecreaseQuantity(item.id)}
-                              aria-label={`Decrease quantity of ${item.name}`}
-                            >
-                              <Minus className="h-3 w-3" />
-                            </motion.button>
-                            <span className="w-6 text-center text-sm font-medium">{item.quantity}</span>
-                            <motion.button
-                              whileTap={{ scale: 0.92 }}
-                              className="h-8 w-8 flex items-center justify-center rounded-lg border border-gray-300 text-gray-700 bg-white hover:bg-green-600 hover:text-white active:bg-green-700 transition-colors duration-150"
-                              onClick={() => handleIncreaseQuantity(item.id)}
-                              aria-label={`Increase quantity of ${item.name}`}
-                            >
-                              <Plus className="h-3 w-3" />
-                            </motion.button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {/* Bottom Section - Totals and Buttons */}
-                {cart.items.length > 0 && (
-                  <div className="border-t bg-white px-4 py-4 space-y-4">
-                    {/* Subtotal, Service Fee, VAT, Total Breakdown */}
-                    <div className="space-y-2 text-sm">
-                      <div className="flex items-center justify-between">
-                        <span className="text-gray-600">Subtotal:</span>
-                        <span>{formatMoney(cart.totalAmount)}</span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-gray-600">Service Fee (2%):</span>
-                        <span>{formatMoney(Math.round(cart.totalAmount * 0.02))}</span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-gray-600">VAT (20%):</span>
-                        <span>{formatMoney(Math.round(cart.totalAmount * 0.20))}</span>
-                      </div>
-                      <div className="border-t pt-2">
-                        <div className="flex items-center justify-between text-lg font-semibold">
-                          <span>Total:</span>
-                          <span>{formatMoney(Math.round(cart.totalAmount * 1.22))}</span>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div className="space-y-3">
-                      <motion.button
-                        onClick={handleCheckout}
-                        disabled={isProcessing}
-                        whileHover={{ scale: 1.02, y: -2 }}
-                        whileTap={{ scale: 0.98 }}
-                        className="w-full h-11 bg-blue-600 hover:bg-blue-700 text-white disabled:bg-gray-200 disabled:text-gray-400 transition-all duration-200 rounded-lg font-medium shadow-lg hover:shadow-xl"
-                      >
-                        {isProcessing ? 'Processing...' : 'Checkout'}
-                      </motion.button>
-                      
-                      <div className="w-full flex justify-center">
-                        <button
-                          onClick={clearCart}
-                          className="text-red-500 text-sm font-medium hover:underline"
-                        >
-                          Clear Cart
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </SheetContent>
-            </Sheet>
+            <div className="shadow-md">
+              <NavCartButton 
+                count={cart.items.length} 
+                onOpen={() => setIsCartOpen(true)} 
+              />
+            </div>
           </div>
-        </div>
-      </header>
-
-      {/* Main Content */}
-      <main className="max-w-screen-sm mx-auto px-4 pb-[calc(env(safe-area-inset-bottom)+16px)]">
-        {/* Search Bar */}
-        <div className="py-4">
+          
+          {/* Compact Search Bar */}
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
             <Input
               placeholder="Search menu items..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 h-12 rounded-2xl border-gray-200"
+              className="pl-10 pr-10 py-2 text-sm border-[#E5E7EB] rounded-[10px] shadow-sm placeholder:text-[#9CA3AF]"
+              style={{ boxShadow: '0px 1px 2px rgba(0,0,0,0.05)' }}
             />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 w-4 h-4 flex items-center justify-center"
+              >
+                ×
+              </button>
+            )}
           </div>
         </div>
+        {/* Thin divider line below header */}
+        <div className="h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent"></div>
+        {/* Extra spacing below header */}
+        <div className="h-2"></div>
+      </div>
 
-        {/* Category Tabs */}
-        {tabs.length > 1 && (
-          <CategoryTabs
-            tabs={tabs}
-            active={selectedTab}
-            onChange={setSelectedTab}
-            counts={counts}
-          />
-        )}
-
-        {/* Menu Items */}
-        {isLoading ? (
-          <div className="grid gap-3 mt-6">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="rounded-2xl border border-gray-200 bg-white p-4 space-y-3">
-                <Skeleton className="h-4 w-3/4" />
-                <Skeleton className="h-3 w-full" />
-                <Skeleton className="h-9 w-20 ml-auto" />
-              </div>
-            ))}
-          </div>
-        ) : Object.keys(groupedItems).length === 0 ? (
-          <div className="text-center py-12">
-            <div className="space-y-2">
-              <h3 className="text-lg font-medium">No items found</h3>
-              <p className="text-gray-500">
-                {searchQuery 
-                  ? 'Try adjusting your search'
-                  : 'No menu items available at this time'}
-              </p>
-            </div>
-          </div>
-        ) : (
-          <div className="space-y-6 mt-6">
-            {Object.entries(groupedItems).map(([category, items]) => (
-              <motion.section
-                key={category}
-                className="space-y-2"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3 }}
+      {/* Category Navigation - Light Background */}
+      <div className="bg-[#F9FAFB]">
+        <div className="max-w-4xl mx-auto">
+          <div className="flex overflow-x-auto scrollbar-hide snap-x snap-mandatory px-4 py-6 gap-3">
+            {tabs.map((tab) => (
+              <motion.button
+                key={`tab-${tab}`}
+                onClick={() => {
+                  setSelectedTab(tab);
+                  setShowUnderline(true);
+                  setTimeout(() => setShowUnderline(false), 500);
+                }}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                className={`
+                  flex-shrink-0 px-6 py-3 rounded-full text-sm font-medium transition-all duration-300
+                  snap-start relative
+                  ${selectedTab === tab 
+                    ? 'bg-[#1e3a8a] text-white font-bold scale-105' 
+                    : 'text-[#4B5563] font-medium hover:text-[#1e40af] hover:bg-[#1e3a8a]/5'
+                  }
+                `}
               >
-                <h2 className="text-xl font-semibold mt-6 mb-2">
-                  {toTitleCase(category)}
-                </h2>
-                
-                <div className="grid gap-3">
-                  {items.map((item) => (
-                    <MenuItemCard
-                      key={item.id}
-                      item={item}
-                      qty={getItemQuantity(item.id)}
-                      onAdd={() => handleAddToCart(item)}
-                      onInc={() => handleIncreaseQuantity(item.id)}
-                      onDec={() => handleDecreaseQuantity(item.id)}
-                    />
-                  ))}
-                </div>
-              </motion.section>
+                {tab}
+                {counts && counts[tab] > 0 && (
+                  <span className={`ml-2 text-xs ${selectedTab === tab ? 'opacity-90' : 'opacity-60'}`}>
+                    ({counts[tab]})
+                  </span>
+                )}
+                {/* Active tab underline indicator */}
+                {selectedTab === tab && showUnderline && (
+                  <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ width: "80%" }}
+                    exit={{ width: 0 }}
+                    transition={{ duration: 0.2, ease: "easeOut" }}
+                    className="absolute bottom-0 left-1/2 transform -translate-x-1/2 h-0.5 bg-gray-400 rounded-full"
+                  />
+                )}
+                {/* Custom shadow for active pill */}
+                {selectedTab === tab && (
+                  <div 
+                    className="absolute inset-0 rounded-full"
+                    style={{ boxShadow: '0px 2px 4px rgba(0,0,0,0.08)' }}
+                  />
+                )}
+              </motion.button>
             ))}
           </div>
+        </div>
+        {/* Thin divider line below category bar */}
+        <div className="h-px bg-[#E5E7EB]"></div>
+        {/* Extra spacing below category bar */}
+        <div className="h-2"></div>
+      </div>
+
+      {/* Menu Content */}
+      <div className="max-w-4xl mx-auto p-4">
+        {/* Menu Items */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {isLoading ? (
+            // Loading skeletons
+            Array.from({ length: 6 }).map((_, index) => (
+              <div key={`loading-skeleton-${index}`} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden animate-pulse">
+                <div className="h-48 bg-gray-200"></div>
+                <div className="p-4 space-y-3">
+                  <div className="space-y-1">
+                    <div className="h-5 bg-gray-200 rounded w-3/4"></div>
+                    <div className="h-4 bg-gray-200 rounded w-1/4"></div>
+                  </div>
+                  <div className="h-4 bg-gray-200 rounded w-full"></div>
+                  <div className="h-4 bg-gray-200 rounded w-2/3"></div>
+                  <div className="h-10 bg-gray-200 rounded-xl"></div>
+                </div>
+              </div>
+            ))
+          ) : (
+            filteredItems.map((item) => (
+            <MenuItemCard
+              key={item.id}
+              item={item}
+              qty={cart.items.find(cartItem => cartItem.id === item.id)?.qty || 0}
+              venueSlug={venueSlug}
+              onAdd={() => addToCart({
+                id: item.id,
+                name: item.name,
+                description: item.description || '',
+                price_cents: item.price_cents,
+                category: item.category || '',
+                available: item.is_active,
+                qty: 1,
+                specialInstructions: undefined
+              })}
+              onInc={() => {
+                const cartItem = cart.items.find(cartItem => cartItem.id === item.id);
+                if (cartItem) {
+                  updateQuantity(item.id, cartItem.qty + 1);
+                }
+              }}
+              onDec={() => {
+                const cartItem = cart.items.find(cartItem => cartItem.id === item.id);
+                if (cartItem && cartItem.qty > 1) {
+                  updateQuantity(item.id, cartItem.qty - 1);
+                } else if (cartItem) {
+                  removeFromCart(item.id);
+                }
+              }}
+            />
+            ))
+          )}
+        </div>
+
+        {filteredItems.length === 0 && (
+          <div className="text-center py-12">
+            <p className="text-gray-500">No items found matching your search.</p>
+          </div>
         )}
-      </main>
+      </div>
+
+      {/* Cart Sidebar */}
+      <CartBar
+        open={isCartOpen}
+        onOpenChange={setIsCartOpen}
+        onCheckout={handleCheckout}
+        isProcessing={isProcessing}
+      />
 
       {/* Sticky Checkout Bar */}
-      <StickyCheckoutBar
-        count={cartCount}
+      <StickyCheckoutBar 
+        count={cart.items.length}
         total={cart.totalAmount}
         onCheckout={handleCheckout}
-        onClear={cartCount > 0 ? clearCart : undefined}
+        onClear={cart.items.length > 0 ? clearCart : undefined}
+        onOpenCart={() => setIsCartOpen(true)}
       />
+
+      {/* Checkout Processing Spinner */}
+      {isProcessing && <CheckoutSpinner />}
     </div>
   );
 };
 
 export default DinerMenu;
-

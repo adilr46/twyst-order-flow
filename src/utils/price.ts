@@ -41,15 +41,15 @@ export function isValidPrice(cents: number): boolean {
 }
 
 /**
- * Calculate total from array of items with price_cents and quantity
+ * Calculate total from array of items with price_cents and qty
  */
-export function calculateTotal(items: Array<{ price_cents: number; quantity: number }>): number {
+export function calculateTotal(items: Array<{ price_cents: number; qty: number }>): number {
   return items.reduce((total, item) => {
     if (!isValidPrice(item.price_cents)) {
       console.warn('Invalid price detected:', item.price_cents);
       return total;
     }
-    return total + (item.price_cents * item.quantity);
+    return total + (item.price_cents * item.qty);
   }, 0);
 }
 

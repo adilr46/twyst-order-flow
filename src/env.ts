@@ -16,7 +16,7 @@ const EnvSchema = z.object({
 
   // Optional Stripe Configuration (for checkout)
   STRIPE_SECRET_KEY: z.string().optional(),
-  STRIPE_WEBHOOK_SECRET: z.string().optional(),
+  STRIPE_WEBHOOK_SECRET: z.string(), // Required for webhook signature verification
 
   // Application Configuration with defaults
   NODE_ENV: z.enum(["development", "production", "test"]).default("development"),

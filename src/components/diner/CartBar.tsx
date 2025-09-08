@@ -1,235 +1,187 @@
 "use client"
 
-import * as React from "react"
-import { ShoppingCart, Plus, Minus, X } from "lucide-react"
-import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Card } from "@/components/ui/card"
-
-interface CartItem {
-  id: string
-  name: string
-  price: number
-  quantity: number
-  image?: string
-  notes?: string
-}
+import React, { useEffect, useRef } from 'react'
+import { motion } from 'framer-motion'
+import { X, Plus, Minus, Trash2 } from 'lucide-react'
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
+import { Button } from '@/components/ui/button'
+import { useCart } from '@/contexts/CartContext'
+import { formatMoney } from '@/lib/format'
 
 interface CartBarProps {
-  items?: CartItem[]
-  totalAmount?: number
-  isVisible?: boolean
-  onCheckout?: () => void
-  onUpdateQuantity?: (itemId: string, quantity: number) => void
-  onRemoveItem?: (itemId: string) => void
-  onToggleExpanded?: (expanded: boolean) => void
-  className?: string
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  onCheckout: () => void
+  isProcessing?: boolean
 }
 
-const sampleItems: CartItem[] = [
-  {
-    id: "1",
-    name: "Truffle Burger",
-    price: 1899,
-    quantity: 2,
-    image: "/api/placeholder/60/60"
-  },
-  {
-    id: "2", 
-    name: "Caesar Salad",
-    price: 1299,
-    quantity: 1,
-    image: "/api/placeholder/60/60"
-  }
-]
+export default function CartBar({ open, onOpenChange, onCheckout, isProcessing = false }: CartBarProps) {
+  const { cart, updateQuantity, removeFromCart, clearCart } = useCart()
+  const firstFocusableRef = useRef<HTMLButtonElement>(null)
 
-export default function CartBar({ 
-  items = sampleItems,
-  totalAmount,
-  isVisible = true,
-  onCheckout,
-  onUpdateQuantity,
-  onRemoveItem,
-  onToggleExpanded,
-  className 
-}: CartBarProps) {
-  const [isExpanded, setIsExpanded] = React.useState(false)
-  
-  const totalItems = items.reduce((sum, item) => sum + item.quantity, 0)
-  const calculatedTotal = totalAmount || items.reduce((sum, item) => sum + (item.price * item.quantity), 0)
-
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD'
-    }).format(price / 100)
-  }
-
-  const handleToggleExpanded = () => {
-    const newExpanded = !isExpanded
-    setIsExpanded(newExpanded)
-    onToggleExpanded?.(newExpanded)
-  }
-
-  const handleUpdateQuantity = (itemId: string, newQuantity: number) => {
-    if (newQuantity <= 0) {
-      onRemoveItem?.(itemId)
-    } else {
-      onUpdateQuantity?.(itemId, newQuantity)
+  // Focus first focusable element when sidebar opens
+  useEffect(() => {
+    if (open && firstFocusableRef.current) {
+      firstFocusableRef.current.focus()
     }
+  }, [open])
+
+  // Handle ESC key
+  useEffect(() => {
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && open) {
+        onOpenChange(false)
+      }
+    }
+
+    if (open) {
+      document.addEventListener('keydown', handleEsc)
+      return () => document.removeEventListener('keydown', handleEsc)
+    }
+  }, [open, onOpenChange])
+
+  const handleCheckout = () => {
+    onCheckout()
+    onOpenChange(false)
   }
 
-  // Don't render if no items or not visible
-  if (!isVisible || totalItems === 0) {
-    return null
+  const handleClearCart = () => {
+    clearCart()
   }
+
+  const subtotal = cart.items.reduce((sum, item) => sum + (item.price_cents * item.qty), 0)
 
   return (
-    <>
-      {/* Expanded Cart Items Overlay */}
-      {isExpanded && (
-        <div className="fixed inset-0 bg-black/20 backdrop-blur-sm z-[45]" onClick={handleToggleExpanded} />
-      )}
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent side="right" className="w-full sm:max-w-[420px] bg-gray-50 p-0 flex flex-col">
+        {/* Header */}
+        <SheetHeader className="px-6 py-4 border-b border-gray-200">
+          <SheetTitle className="text-left text-xl font-bold text-gray-900">
+            Your Basket
+          </SheetTitle>
+        </SheetHeader>
 
-      <div className={cn("cart-bar-container border-t", className)}>
-        <div className="container-mobile">
-          {/* Expanded Cart Items */}
-          {isExpanded && (
-            <div className="border-b border-border bg-background/95 backdrop-blur-sticky">
-              <div className="py-4 space-y-3 max-h-64 overflow-y-auto">
-                <div className="flex items-center justify-between px-4">
-                  <h3 className="text-sm font-semibold">Your Order</h3>
-                  <Button
-                    variant="ghost"
-                    size="icon-sm"
-                    onClick={handleToggleExpanded}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-                
-                {items.map((item) => (
-                  <Card
-                    key={item.id}
-                    variant="flat"
-                    padding="sm"
-                    className="mx-4 bg-background/80"
-                  >
-                    <div className="flex items-center space-x-3">
-                      {item.image && (
-                        <img
-                          src={item.image}
-                          alt={item.name}
-                          className="w-12 h-12 rounded-md object-cover flex-shrink-0"
-                        />
-                      )}
-                      
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate">{item.name}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {formatPrice(item.price)} each
-                        </p>
-                        {item.notes && (
-                          <p className="text-xs text-muted-foreground italic">
-                            {item.notes}
-                          </p>
-                        )}
-                      </div>
-                      
-                      <div className="flex items-center space-x-2 flex-shrink-0">
-                        <Button
-                          variant="ghost"
-                          size="icon-sm"
-                          onClick={() => handleUpdateQuantity(item.id, item.quantity - 1)}
-                          disabled={item.quantity <= 1}
-                        >
-                          <Minus className="h-3 w-3" />
-                        </Button>
-                        
-                        <Badge variant="outline" className="min-w-[2rem] justify-center">
-                          {item.quantity}
-                        </Badge>
-                        
-                        <Button
-                          variant="ghost"
-                          size="icon-sm"
-                          onClick={() => handleUpdateQuantity(item.id, item.quantity + 1)}
-                        >
-                          <Plus className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    </div>
-                  </Card>
-                ))}
-              </div>
+        {/* Cart Items */}
+        <div className="flex-1 overflow-y-auto px-6 py-4">
+          {cart.items.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-full text-center">
+              <div className="text-6xl mb-4">🛒</div>
+              <p className="text-gray-500 text-lg">Your cart is empty</p>
+              <p className="text-gray-400 text-sm mt-2">Add some items to get started</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {cart.items.map((item, index) => (
+                <motion.div
+                  key={item.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.1 }}
+                  className="flex items-start justify-between p-4 bg-white rounded-xl border border-gray-200 shadow-sm"
+                >
+                  {/* Item Info */}
+                  <div className="flex-1 min-w-0 mr-4">
+                    <h3 className="font-semibold text-gray-900 truncate">
+                      {item.name}
+                    </h3>
+                    <p className="text-sm text-gray-600 mt-1">
+                      {formatMoney(item.price_cents)}
+                    </p>
+                    {item.notes && (
+                      <p className="text-xs text-gray-500 mt-1 italic">
+                        Note: {item.notes}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Quantity Controls */}
+                  <div className="flex items-center gap-2">
+                    <motion.button
+                      ref={index === 0 ? firstFocusableRef : undefined}
+                      onClick={() => updateQuantity(item.id, item.qty - 1)}
+                      disabled={item.qty <= 1}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      className="h-10 w-10 flex items-center justify-center rounded-xl border-2 border-gray-200 text-gray-600 bg-white hover:bg-gray-50 hover:border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-sm hover:shadow-md"
+                      aria-label={`Decrease quantity of ${item.name}`}
+                    >
+                      <Minus className="h-4 w-4" />
+                    </motion.button>
+                    
+                    <span className="w-10 text-center font-bold bg-gray-100 rounded-xl h-10 flex items-center justify-center text-base border border-gray-200">
+                      {item.qty}
+                    </span>
+                    
+                    <motion.button
+                      onClick={() => updateQuantity(item.id, item.qty + 1)}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      className="h-10 w-10 flex items-center justify-center rounded-xl border-2 border-gray-200 text-gray-600 bg-white hover:bg-gray-50 hover:border-gray-300 transition-all duration-200 shadow-sm hover:shadow-md"
+                      aria-label={`Increase quantity of ${item.name}`}
+                    >
+                      <Plus className="h-4 w-4" />
+                    </motion.button>
+                  </div>
+
+                  {/* Line Total & Delete */}
+                  <div className="flex flex-col items-end space-y-2 ml-4">
+                    <span className="font-semibold text-gray-900">
+                      {formatMoney(item.price_cents * item.qty)}
+                    </span>
+                    <motion.button
+                      onClick={() => removeFromCart(item.id)}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      className="h-10 w-10 flex items-center justify-center rounded-xl bg-gray-50 text-red-600 hover:bg-red-100 transition-all duration-200 shadow-sm hover:shadow-md border border-gray-200"
+                      aria-label={`Remove ${item.name} from cart`}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </motion.button>
+                  </div>
+                </motion.div>
+              ))}
             </div>
           )}
+        </div>
 
-          {/* Cart Summary Bar */}
-          <div 
-            className="px-4 py-3 flex items-center gap-3"
-            style={{
-              paddingBottom: "calc(12px + var(--sa-bottom))",
-              minHeight: "var(--twyst-cart-h)"
-            }}
-          >
-            {/* Cart Toggle Button */}
-            <button
-              onClick={handleToggleExpanded}
-              className={cn(
-                "flex items-center space-x-3 text-left flex-1 min-w-0",
-                "hover:opacity-75 transition-opacity tap-target",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-md"
-              )}
-            >
-              <div className="relative flex-shrink-0">
-                <ShoppingCart className="h-6 w-6" />
-                <Badge 
-                  size="sm" 
-                  className="absolute -top-2 -right-2 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs"
-                >
-                  {totalItems}
-                </Badge>
-              </div>
-              
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate">
-                  {totalItems} {totalItems === 1 ? 'item' : 'items'}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  Tap to {isExpanded ? 'collapse' : 'view items'}
-                </p>
-              </div>
-            </button>
+        {/* Footer - Order Summary & Actions */}
+        {cart.items.length > 0 && (
+          <div className="border-t border-gray-100 bg-white p-6 space-y-4">
+            {/* Order Summary */}
+            <div className="flex justify-between items-center">
+              <span className="text-lg font-semibold text-gray-900">Subtotal:</span>
+              <span className="text-xl font-bold text-gray-900">
+                {formatMoney(subtotal)}
+              </span>
+            </div>
+            <p className="text-xs text-gray-500 text-center">
+            </p>
 
-            {/* Total and Checkout */}
-            <div className="flex items-center space-x-3 flex-shrink-0">
-              <div className="text-right">
-                <p className="text-lg font-bold">
-                  {formatPrice(calculatedTotal)}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  Total
-                </p>
-              </div>
-              
+            {/* Action Buttons */}
+            <div className="space-y-3">
+              {/* Primary Checkout Button */}
               <Button
-                variant="primary"
-                size="lg"
-                onClick={onCheckout}
-                className="shadow-glow hover:shadow-glow hover:scale-105 tap-target"
+                onClick={handleCheckout}
+                disabled={isProcessing}
+                className="w-full h-12 text-base font-bold shadow-lg hover:shadow-xl bg-[#1e3a8a] hover:bg-[#1e40af] text-white rounded-xl transition-all duration-200"
+                aria-label="Proceed to checkout"
               >
-                <ShoppingCart className="h-4 w-4 mr-2" />
-                Checkout
+                {isProcessing ? 'Processing...' : 'Checkout'}
+              </Button>
+
+              {/* Clear Cart Button */}
+              <Button
+                onClick={handleClearCart}
+                variant="outline"
+                className="w-full h-11 bg-white text-red-600 border-2 border-gray-200 hover:bg-gray-50 hover:border-gray-300 hover:text-red-700 transition-all duration-200 rounded-xl font-semibold shadow-sm hover:shadow-md underline"
+                aria-label="Clear all items from cart"
+              >
+                Clear Cart
               </Button>
             </div>
           </div>
-        </div>
-      </div>
-    </>
+        )}
+      </SheetContent>
+    </Sheet>
   )
 }
-
-
-

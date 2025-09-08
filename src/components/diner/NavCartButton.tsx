@@ -1,6 +1,7 @@
 "use client"
 
 import { motion } from 'framer-motion'
+import { ShoppingCart } from 'lucide-react'
 
 interface NavCartButtonProps {
   count: number
@@ -11,32 +12,45 @@ export default function NavCartButton({ count, onOpen }: NavCartButtonProps) {
   return (
     <motion.button
       onClick={onOpen}
+      whileHover={{ scale: 1.05, y: -2 }}
       whileTap={{ scale: 0.95 }}
       aria-label={`Open cart (${count} items)`}
       className="
-        group relative h-10 px-3 rounded-full border border-gray-300
-        bg-white text-gray-700
-        flex items-center gap-2
-        hover:bg-green-600 hover:text-white
-        active:bg-green-700
-        transition-colors duration-150
-        shadow-sm
+        group relative h-12 px-4 rounded-2xl border border-transparent
+        bg-[#1e3a8a] text-white
+        flex items-center gap-3
+        hover:bg-[#1e40af]
+        active:scale-95
+        transition-all duration-300 ease-out
+        shadow-lg hover:shadow-xl
+        font-bold text-sm
       "
     >
-      <span className="text-base">🛒</span>
+      <motion.div 
+        className="text-white"
+        animate={{ rotate: [0, 5, -5, 0] }}
+        transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
+      >
+        <ShoppingCart className="w-5 h-5" />
+      </motion.div>
       {count > 0 && (
-        <span
+        <motion.span
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          transition={{ type: "spring", stiffness: 500, damping: 30 }}
           className="
-            inline-flex h-5 min-w-[1.25rem] items-center justify-center
-            px-1 rounded-full text-xs font-medium
-            bg-gray-800 text-white
-            group-hover:bg-gray-900
-            transition-colors duration-150
+            inline-flex h-6 min-w-[1.5rem] items-center justify-center
+            px-2 rounded-xl text-xs font-bold
+            bg-white text-[#1e3a8a]
+            group-hover:bg-gray-50
+            transition-all duration-300 ease-out
+            shadow-md group-hover:shadow-lg
+            border border-gray-200
           "
           aria-hidden="true"
         >
           {count}
-        </span>
+        </motion.span>
       )}
     </motion.button>
   )

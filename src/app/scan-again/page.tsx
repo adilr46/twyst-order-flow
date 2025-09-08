@@ -4,7 +4,6 @@ import React, { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { QrCode, AlertTriangle, Smartphone, ArrowRight, Nfc, Wifi, WifiOff } from 'lucide-react';
-import { isLikelyNFCSession } from '@/lib/session-manager';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -15,7 +14,8 @@ function ScanAgainContent() {
   const router = useRouter();
   const slug = searchParams?.get('slug');
   const reason = searchParams?.get('reason');
-  const isNFCDevice = isLikelyNFCSession();
+  // Simplified MVP: assume QR code for now
+  const isNFCDevice = false;
   const [isOnline, setIsOnline] = useState(true); // Default to true, update after mount
 
   // Safely check navigator.onLine after component mounts

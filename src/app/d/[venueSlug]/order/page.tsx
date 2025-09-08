@@ -1,4 +1,3 @@
-import TableTokenGuard from '@/components/guards/TableTokenGuard'
 import { redirect } from 'next/navigation'
 
 interface OrderStatusPageProps {

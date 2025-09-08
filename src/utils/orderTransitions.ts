@@ -2,16 +2,14 @@
  * Order status transition utilities for client-side validation and UI
  */
 
-export type OrderStatus = 'created' | 'paid' | 'accepted' | 'in_prep' | 'ready' | 'served' | 'cancelled';
+export type OrderStatus = 'created' | 'paid' | 'in_prep' | 'ready' | 'served';
 
 export const VALID_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
-  created: ['paid', 'cancelled'],
-  paid: ['accepted', 'cancelled'], 
-  accepted: ['in_prep', 'cancelled'],
-  in_prep: ['ready', 'cancelled'],
+  created: ['paid'],
+  paid: ['in_prep'], 
+  in_prep: ['ready'],
   ready: ['served'],
-  served: [], // Terminal state
-  cancelled: [] // Terminal state
+  served: [] // Terminal state
 };
 
 /**
@@ -44,16 +42,12 @@ export function getStatusDescription(status: OrderStatus): string {
       return 'Order has been created and is awaiting payment';
     case 'paid':
       return 'Payment confirmed! Order sent to kitchen';
-    case 'accepted':
-      return 'Kitchen has accepted your order';
     case 'in_prep':
       return 'Your order is being prepared';
     case 'ready':
       return 'Order is ready for pickup/delivery';
     case 'served':
       return 'Order has been served. Enjoy!';
-    case 'cancelled':
-      return 'Order has been cancelled';
     default:
       return 'Unknown status';
   }
@@ -68,16 +62,12 @@ export function getStatusColor(status: OrderStatus): string {
       return 'text-amber-600 bg-amber-50 border-amber-200';
     case 'paid':
       return 'text-blue-600 bg-blue-50 border-blue-200';
-    case 'accepted':
-      return 'text-purple-600 bg-purple-50 border-purple-200';
     case 'in_prep':
       return 'text-orange-600 bg-orange-50 border-orange-200';
     case 'ready':
       return 'text-green-600 bg-green-50 border-green-200';
     case 'served':
       return 'text-emerald-600 bg-emerald-50 border-emerald-200';
-    case 'cancelled':
-      return 'text-red-600 bg-red-50 border-red-200';
     default:
       return 'text-gray-600 bg-gray-50 border-gray-200';
   }
@@ -91,8 +81,6 @@ export function getEstimatedTime(status: OrderStatus): number | null {
     case 'created':
       return 1; // Payment should be quick
     case 'paid':
-      return 2; // Kitchen acceptance
-    case 'accepted':
       return 15; // Prep time
     case 'in_prep':
       return 5; // Final prep

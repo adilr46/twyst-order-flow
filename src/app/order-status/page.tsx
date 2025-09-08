@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Clock, CheckCircle, ChefHat, Loader2, CreditCard, Users, Utensils, Bell, Info } from 'lucide-react';
+import OrderLoadingSpinner from '@/components/ui/OrderLoadingSpinner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -15,14 +16,11 @@ import { supabase } from '@/lib/supabase';
 import { getStatusDescription, getStatusColor, type OrderStatus } from '@/utils/orderTransitions';
 // import HeaderShell from '@/components/layout/HeaderShell';
 
-type PaymentStatus = 'pending' | 'paid' | 'failed';
-
 // src/app/order-status/page.tsx - Replace lines 20-48:
 interface OrderData {
   id: string;
   status: OrderStatus;
-  payment_status: PaymentStatus;
-  payment_failed_reason?: string | null;
+  payment_intent?: string | null;
   total_cents: number;
   subtotal_cents: number;
   tax_cents: number;
@@ -70,6 +68,13 @@ export default function OrderStatusPage() {
   const [lastUpdate, setLastUpdate] = useState(0);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Helper function to determine payment status from order status
+  const getPaymentStatus = (status: OrderStatus, paymentIntent?: string | null): 'pending' | 'paid' => {
+    if (status === 'created' && !paymentIntent) return 'pending';
+    if (status === 'paid' || paymentIntent) return 'paid';
+    return 'pending';
+  };
+
   // Fetch order data
   // Replace the fetchOrder function (lines 74-139) with this corrected version:
 
@@ -86,8 +91,7 @@ const fetchOrder = async () => {
       .select(`
         id,
         status,
-        payment_status,
-        payment_failed_reason,
+        payment_intent,
         total_cents,
         subtotal_cents,
         tax_cents,
@@ -138,9 +142,6 @@ const fetchOrder = async () => {
       })),
       // Ensure sessions is an array
       sessions: Array.isArray((data as any).sessions) ? (data as any).sessions : [(data as any).sessions],
-      // Provide fallbacks for payment fields
-      payment_status: (data as any).payment_status || 'pending',
-      payment_failed_reason: (data as any).payment_failed_reason || null
     } as OrderData;
     
     setOrder(orderData);
@@ -156,14 +157,15 @@ const fetchOrder = async () => {
 
 useEffect(() => {
   if (!orderId || !order) return;
-  if (order.payment_status !== 'pending') return;
+  const currentPaymentStatus = getPaymentStatus(order.status, order.payment_intent);
+  if (currentPaymentStatus !== 'pending') return;
 
   let cancelled = false;
   const poll = async (attempt = 0) => {
     try {
       const { data, error } = await supabaseClient
         .from('orders')
-        .select('payment_status, status')
+        .select('status, payment_intent')
         .eq('id', orderId)
         .single();
 
@@ -176,19 +178,17 @@ useEffect(() => {
         return;
       }
 
-      if ((data as any)?.payment_status === 'paid') {
+      const newPaymentStatus = getPaymentStatus((data as any).status, (data as any).payment_intent);
+      if (newPaymentStatus === 'paid') {
         setOrder(prev => prev ? { 
           ...prev, 
-          payment_status: 'paid', 
-          status: ((data as any).status as OrderStatus) ?? prev.status 
+          status: ((data as any).status as OrderStatus) ?? prev.status,
+          payment_intent: (data as any).payment_intent ?? prev.payment_intent
         } : prev);
         return;
       }
       
-      if ((data as any)?.payment_status === 'failed') {
-        setOrder(prev => prev ? { ...prev, payment_status: 'failed' } : prev);
-        return;
-      }
+      // No failed status in simplified flow
       
       const delay = Math.min(1000 * Math.pow(1.6, attempt), 10000);
       setTimeout(() => poll(attempt + 1), delay);
@@ -203,7 +203,7 @@ useEffect(() => {
   
   poll();
   return () => { cancelled = true; };
-}, [orderId, order?.payment_status, supabaseClient]);
+}, [orderId, order?.status, order?.payment_intent, supabaseClient]);
 
 // Replace the status polling useEffect (around lines 223-269) with this:
 
@@ -216,7 +216,7 @@ useEffect(() => {
     try {
       const { data, error } = await supabaseClient
         .from('orders')
-        .select('status, payment_status')
+        .select('status, payment_intent')
         .eq('id', orderId)
         .single();
       
@@ -230,7 +230,7 @@ useEffect(() => {
         setOrder(prev => prev ? { 
           ...prev, 
           status: (data as any).status as OrderStatus,
-          payment_status: ((data as any).payment_status as PaymentStatus) || prev.payment_status
+          payment_intent: (data as any).payment_intent ?? prev.payment_intent
         } : null);
         
         // Trigger success animation for paid status
@@ -263,35 +263,34 @@ useEffect(() => {
   // Exponential backoff polling for pending payments
   useEffect(() => {
     if (!orderId || !order) return;
-    if (order.payment_status !== 'pending') return;
+    const currentPaymentStatus = getPaymentStatus(order.status, order.payment_intent);
+    if (currentPaymentStatus !== 'pending') return;
 
     let cancelled = false;
     const poll = async (attempt = 0) => {
       const { data } = await supabaseClient
         .from('orders')
-        .select('payment_status,status')
+        .select('status, payment_intent')
         .eq('id', orderId)
         .single();
 
       if (cancelled) return;
-      if ((data as any)?.payment_status === 'paid') {
+      const newPaymentStatus = getPaymentStatus((data as any).status, (data as any).payment_intent);
+      if (newPaymentStatus === 'paid') {
         setOrder(prev => prev ? { 
           ...prev, 
-          payment_status: 'paid', 
-          status: ((data as any).status as OrderStatus) ?? prev.status 
+          status: ((data as any).status as OrderStatus) ?? prev.status,
+          payment_intent: (data as any).payment_intent ?? prev.payment_intent
         } : prev);
         return;
       }
-      if ((data as any)?.payment_status === 'failed') {
-        setOrder(prev => prev ? { ...prev, payment_status: 'failed' } : prev);
-        return;
-      }
+      // No failed status in simplified flow
       const delay = Math.min(1000 * Math.pow(1.6, attempt), 10000);
       setTimeout(() => poll(attempt + 1), delay);
     };
     poll();
     return () => { cancelled = true; };
-  }, [orderId, order?.payment_status, supabaseClient]);
+  }, [orderId, order?.status, order?.payment_intent, supabaseClient]);
 
   // Real-time subscription for order updates
   useEffect(() => {
@@ -309,11 +308,13 @@ useEffect(() => {
         const newPayload = payload.new as any;
         
         // Guard pending→paid transition
-        if (newPayload?.payment_status === 'paid' && order?.payment_status !== 'paid') {
+        const newPaymentStatus = getPaymentStatus(newPayload?.status, newPayload?.payment_intent);
+        const currentPaymentStatus = getPaymentStatus(order?.status, order?.payment_intent);
+        if (newPaymentStatus === 'paid' && currentPaymentStatus !== 'paid') {
           setOrder(prev => prev && { 
             ...prev, 
-            payment_status: 'paid', 
-            status: 'paid' as OrderStatus 
+            status: newPayload?.status as OrderStatus,
+            payment_intent: newPayload?.payment_intent ?? prev.payment_intent
           });
           toast({ 
             title: 'Payment confirmed', 
@@ -352,7 +353,7 @@ useEffect(() => {
       try {
         const { data } = await supabaseClient
           .from('orders')
-          .select('status,payment_status')
+          .select('status, payment_intent')
           .eq('id', orderId)
           .single();
         
@@ -361,7 +362,7 @@ useEffect(() => {
           setOrder(prev => prev ? { 
             ...prev, 
             status: (data as any).status as OrderStatus,
-            payment_status: (data as any).payment_status as PaymentStatus
+            payment_intent: (data as any).payment_intent ?? prev.payment_intent
           } : null);
           
           // Trigger success animation for paid status
@@ -416,9 +417,7 @@ useEffect(() => {
       case 'paid':
         setEstimatedTime(15); // 15 minutes from payment
         break;
-      case 'accepted':
-        setEstimatedTime(12); // 12 minutes from acceptance
-        break;
+      // No accepted status in simplified flow
       case 'in_prep':
         setEstimatedTime(8); // 8 minutes from prep start
         break;
@@ -426,7 +425,6 @@ useEffect(() => {
         setEstimatedTime(0); // Ready now
         break;
       case 'served':
-      case 'cancelled':
         setEstimatedTime(null);
         break;
       default:
@@ -442,11 +440,9 @@ useEffect(() => {
     const messages = {
       created: "Your order is being processed...",
       paid: "Payment confirmed! Your order is being prepared.",
-      accepted: "Order accepted by the kitchen!",
       in_prep: "Your order is being prepared with care.",
       ready: "Your order is ready for pickup!",
-      served: "Order completed. Thank you!",
-      cancelled: "This order has been cancelled."
+      served: "Order completed. Thank you!"
     };
     return messages[status] || "Order status unknown";
   };
@@ -455,26 +451,23 @@ useEffect(() => {
     const displayTexts = {
       created: "Order Placed",
       paid: "Payment Confirmed",
-      accepted: "Order Accepted", 
       in_prep: "Being Prepared",
       ready: "Ready for Pickup",
-      served: "Completed",
-      cancelled: "Cancelled"
+      served: "Completed"
     };
     return displayTexts[status] || status;
   };
 
   const stepperSteps = [
     { key: 'paid', label: 'Paid', icon: CreditCard },
-    { key: 'accepted', label: 'Accepted', icon: CheckCircle },
     { key: 'in_prep', label: 'Preparing', icon: ChefHat },
     { key: 'ready', label: 'Ready', icon: Bell },
     { key: 'served', label: 'Complete', icon: Utensils }
   ];
 
   const getStepStatus = (stepKey: string, currentStatus: OrderStatus): 'completed' | 'current' | 'pending' => {
-    const statusOrder = ['created', 'paid', 'accepted', 'in_prep', 'ready', 'served'];
-    const stepOrder = ['paid', 'accepted', 'in_prep', 'ready', 'served'];
+    const statusOrder = ['created', 'paid', 'in_prep', 'ready', 'served'];
+    const stepOrder = ['paid', 'in_prep', 'ready', 'served'];
     
     const currentIndex = statusOrder.indexOf(currentStatus);
     const stepIndex = stepOrder.indexOf(stepKey);
@@ -485,16 +478,7 @@ useEffect(() => {
   };
 
   if (loading) {
-    return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="flex items-center justify-center min-h-[50vh]">
-          <div className="text-center space-y-4">
-            <Loader2 className="h-8 w-8 animate-spin mx-auto" />
-            <p className="text-muted-foreground">Loading your order...</p>
-          </div>
-        </div>
-      </div>
-    );
+    return <OrderLoadingSpinner />;
   }
 
   if (error || !order) {
@@ -513,7 +497,7 @@ useEffect(() => {
   }
 
   const progress = (() => {
-    const statusOrder = ['created', 'paid', 'accepted', 'in_prep', 'ready', 'served'];
+    const statusOrder = ['created', 'paid', 'in_prep', 'ready', 'served'];
     const currentIndex = statusOrder.indexOf(order.status);
     return Math.max(0, (currentIndex / (statusOrder.length - 1)) * 100);
   })();
@@ -530,31 +514,14 @@ useEffect(() => {
       </div>
       <div className="space-y-6 pb-6">
         {/* Payment Status Alerts */}
-        {order.payment_status === 'pending' && (
+        {getPaymentStatus(order.status, order.payment_intent) === 'pending' && (
           <Alert className="bg-blue-50 border-blue-200">
             <Loader2 className="h-4 w-4 animate-spin" />
             <AlertDescription>Confirming payment… this can take a few seconds.</AlertDescription>
           </Alert>
         )}
 
-        {order.payment_status === 'failed' && (
-          <Card className="border-red-200 bg-red-50">
-            <CardHeader><CardTitle>Payment failed</CardTitle></CardHeader>
-            <CardContent className="space-y-3">
-              {order.payment_failed_reason && (
-                <p className="text-sm text-red-700">Reason: {order.payment_failed_reason}</p>
-              )}
-              <div className="flex gap-2">
-              <Button onClick={() => router.replace(`/d/${order.venues[0]?.slug}?restore=1`)}>
-                  Try again
-                </Button>
-                <Button variant="ghost" onClick={() => router.push(`/d/${order.venues[0]?.slug}`)}>
-                  Back to menu
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+        {/* No failed status in simplified flow */}
 
         {/* Status Header */}
         <motion.div
@@ -604,7 +571,7 @@ useEffect(() => {
         </div>
 
         {/* Status Stepper */}
-        {order.status !== 'cancelled' && (
+        {order.status !== 'created' && (
           <div className="relative">
             <div className="flex justify-between items-center">
               {stepperSteps.map((step, index) => {
@@ -699,7 +666,7 @@ useEffect(() => {
                 </div>
               )}
               <div className="flex justify-between font-semibold pt-2 border-t">
-                <span>Total <span className="text-xs text-muted-foreground">(VAT inclusive)</span></span>
+                <span>Total</span>
                 <span>{formatPrice(order.total_cents)}</span>
               </div>
             </div>

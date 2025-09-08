@@ -17,6 +17,11 @@ export default function HomePage() {
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button asChild size="lg">
+              <Link href="/d/demo-cafe?t=demo123">
+                🍽️ Demo Cafe Menu
+              </Link>
+            </Button>
+            <Button variant="outline" size="lg" asChild>
               <Link href="/dev-launch">
                 🚀 Demo Launch
               </Link>

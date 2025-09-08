@@ -15,7 +15,7 @@ export default function CategoryTabs({ tabs, active, onChange, counts }: Categor
   const safeTabs = Array.isArray(tabs) ? tabs : [];
   
   return (
-    <div className="sticky top-0 z-10 bg-white/90 backdrop-blur supports-[backdrop-filter]:bg-white/70 border-b">
+    <div className="sticky top-0 z-10 bg-white/90 backdrop-blur supports-[backdrop-filter]:bg-white/70 border-b border-gray-100">
       <div 
         className="flex overflow-x-auto gap-3 px-4 py-2"
         role="tablist"
@@ -35,13 +35,13 @@ export default function CategoryTabs({ tabs, active, onChange, counts }: Categor
               }
             }}
             className={`
-              relative whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium
+              relative whitespace-nowrap rounded-lg px-3 py-2 text-sm font-semibold
               border border-transparent
-              text-gray-700 bg-white
-              hover:bg-green-600 hover:text-white
-              active:bg-green-700
-              transition-colors duration-150
-              ${active === tab ? "text-gray-900" : ""}
+              text-body bg-white
+              hover:bg-gray-100 hover:text-gray-600
+              active:bg-gray-200
+              transition-colors duration-200 ease-in-out
+              ${active === tab ? "text-heading bg-gray-50" : ""}
             `}
           >
             {toTitleCase(tab)}
@@ -50,7 +50,7 @@ export default function CategoryTabs({ tabs, active, onChange, counts }: Categor
             )}
             
             {active === tab && (
-              <span className="absolute -bottom-[2px] left-2 right-2 h-0.5 rounded bg-gray-900" />
+              <span className="absolute -bottom-[2px] left-2 right-2 h-0.5 rounded bg-primary-600" />
             )}
           </motion.button>
         ))}

@@ -1,6 +1,7 @@
 "use client"
 
 import { motion, AnimatePresence } from 'framer-motion'
+import { ShoppingCart } from 'lucide-react'
 import { formatMoney } from '@/lib/format'
 import { useToast } from '@/hooks/use-toast'
 
@@ -9,19 +10,23 @@ interface StickyCheckoutBarProps {
   total: number
   onCheckout?: () => void
   onClear?: () => void
+  onOpenCart?: () => void
 }
 
 export default function StickyCheckoutBar({ 
   count, 
   total, 
   onCheckout, 
-  onClear 
+  onClear,
+  onOpenCart 
 }: StickyCheckoutBarProps) {
   const { toast } = useToast()
 
-  const handleCheckout = () => {
-    // Use the passed onCheckout prop if available
-    if (onCheckout) {
+  const handleCartClick = () => {
+    // Open cart sidebar if available, otherwise fall back to direct checkout
+    if (onOpenCart) {
+      onOpenCart();
+    } else if (onCheckout) {
       onCheckout();
     } else {
       toast({
@@ -51,37 +56,37 @@ export default function StickyCheckoutBar({
         }}
       >
         <div className="mx-auto max-w-screen-sm px-4">
-          <div className="rounded-2xl border bg-white/95 backdrop-blur-sm shadow-lg p-4">
+          <div className="rounded-t-3xl bg-white shadow-xl border-t border-gray-100 px-6 py-4">
             <div className="flex items-center justify-between gap-4">
-              <div className="flex items-center gap-3 flex-1">
-                <div className="flex items-center gap-2 text-sm text-gray-600">
-                  <span>🛒</span>
-                  <span>{count} {count === 1 ? 'item' : 'items'}</span>
-                  <span className="text-gray-400">|</span>
-                  <span className="font-semibold text-gray-900">
-                    {formatMoney(Math.round(total * 1.22))}
+              <div className="flex flex-col gap-2 flex-1">
+                <div className="flex items-center gap-2">
+                  <span className="text-heading text-xl font-bold">
+                    {formatMoney(total)}
                   </span>
                 </div>
-                
+
                 {onClear && (
-                  <button
+                  <motion.button
                     onClick={onClear}
-                    className="text-xs text-red-500 hover:text-red-700 underline ml-2"
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    className="self-start bg-white text-red-600 border-2 border-red-200 hover:bg-red-50 hover:border-red-300 font-medium rounded-full px-3 py-1.5 text-xs transition-all duration-300 ease-in-out shadow-sm hover:shadow-md"
                     aria-label="Clear cart"
                   >
-                    Clear
-                  </button>
+                    Clear Cart
+                  </motion.button>
                 )}
               </div>
-              
-              <motion.button 
-                onClick={handleCheckout}
-                whileHover={{ scale: 1.02, y: -2 }}
+
+              <motion.button
+                onClick={handleCartClick}
+                whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
-                className="h-10 px-4 rounded-lg font-medium bg-blue-600 text-white hover:bg-blue-700 transition-all duration-200 shadow-lg hover:shadow-xl"
-                aria-label="Proceed to checkout"
+                className="btn-primary h-12 px-6 rounded-full flex items-center gap-3 shadow-lg hover:shadow-xl text-base font-semibold"
+                aria-label={onOpenCart ? "Open cart" : "Proceed to checkout"}
               >
-                Checkout
+                <ShoppingCart className="w-6 h-6 text-white" />
+                <span>{onOpenCart ? "View Cart" : "Checkout"}</span>
               </motion.button>
             </div>
           </div>
