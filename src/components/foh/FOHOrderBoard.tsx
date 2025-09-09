@@ -49,6 +49,7 @@ export default function FOHOrderBoard({ venueSlug }: { venueSlug: string }) {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const channelRef = useRef<any>(null);
 
   const fetchOrders = useCallback(async (isRefresh = false) => {
     if (!venueSlug) {
@@ -126,7 +127,6 @@ export default function FOHOrderBoard({ venueSlug }: { venueSlug: string }) {
     };
 
     // Initialize realtime connection
-  const channelRef = useRef<any>(null);
   setupRealtime().then(ch => { channelRef.current = ch; });
 
     // ✅ Reduced polling to 15 seconds (since we have realtime)

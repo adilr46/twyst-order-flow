@@ -1,5 +1,10 @@
 {
   "pages": {
+    "/api/foh/orders/list/route": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/api/foh/orders/list/route.js"
+    ],
     "/layout": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
@@ -50,6 +55,51 @@
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/api/menu/init/route.js"
+    ],
+    "/api/create-checkout-session/route": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/api/create-checkout-session/route.js"
+    ],
+    "/api/webhooks/stripe/route": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/api/webhooks/stripe/route.js"
+    ],
+    "/o/[shortCode]/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/o/[shortCode]/page.js"
+    ],
+    "/api/orders/[shortCode]/route": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/api/orders/[shortCode]/route.js"
+    ],
+    "/foh/error": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/foh/error.js"
+    ],
+    "/foh/loading": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/foh/loading.js"
+    ],
+    "/foh/[venueSlug]/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/foh/[venueSlug]/page.js"
+    ],
+    "/api/venues/[slug]/route": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/api/venues/[slug]/route.js"
+    ],
+    "/api/foh/update-status/route": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/api/foh/update-status/route.js"
     ]
   }
 }
