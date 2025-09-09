@@ -9,7 +9,10 @@ export async function POST(req: NextRequest) {
       venueSlug = body.venueSlug;
     } catch (jsonError) {
       console.error('[foh-orders-list] JSON parsing error:', jsonError);
-      return NextResponse.json({ error: 'Invalid JSON in request body' }, { status: 400 });
+      console.error('[foh-orders-list] Request body might be empty or malformed');
+      return NextResponse.json({ 
+        error: 'Invalid JSON in request body. Make sure to send { venueSlug: "your-venue-slug" }' 
+      }, { status: 400 });
     }
     
     console.log('[foh-orders-list v3] Request for venue:', venueSlug);

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardContent, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -50,7 +50,12 @@ export default function FOHOrderBoard({ venueSlug }: { venueSlug: string }) {
   const [busy, setBusy] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
-  const fetchOrders = async (isRefresh = false) => {
+  const fetchOrders = useCallback(async (isRefresh = false) => {
+    if (!venueSlug) {
+      console.log('[FOH] No venueSlug provided, skipping fetch');
+      return;
+    }
+    
     if (isRefresh) setRefreshing(true);
     try {
       console.log('[FOH] Fetching orders for venue:', venueSlug);
@@ -72,7 +77,7 @@ export default function FOHOrderBoard({ venueSlug }: { venueSlug: string }) {
       setLoading(false);
       if (isRefresh) setRefreshing(false);
     }
-  };
+  }, [venueSlug]);
 
   useEffect(() => {
     fetchOrders();
@@ -133,7 +138,7 @@ export default function FOHOrderBoard({ venueSlug }: { venueSlug: string }) {
       }
       clearInterval(pollInterval);
     };
-  }, [venueSlug]);
+  }, [venueSlug, fetchOrders]);
 
   const grouped = useMemo(() => {
     const map: Record<string, OrderLite[]> = { paid: [], in_prep: [], ready: [], served: [] };

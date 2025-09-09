@@ -25,6 +25,7 @@ export default function OrderStatusPage() {
   const [orderItems, setOrderItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const channelRef = useRef<any>(null);
 
   useEffect(() => {
     if (!shortCode) return;
@@ -56,9 +57,7 @@ export default function OrderStatusPage() {
     if (!order?.id) return;
 
     // Subscribe to real-time updates on orders table filtered by order_id
-    let channel: any;
-    
-    channel = supabase
+    channelRef.current = supabase
       .channel(`order-${order.id}`)
       .on(
         'postgres_changes',
@@ -98,8 +97,8 @@ export default function OrderStatusPage() {
       .subscribe();
 
     return () => {
-      if (channel) {
-        supabase.removeChannel(channel);
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
       }
     };
   }, [order?.id, shortCode]);

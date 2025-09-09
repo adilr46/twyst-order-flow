@@ -123,37 +123,38 @@ const initialState: CartState = {
 
 export function CartProvider({ children }: { children: ReactNode }) {
   const [cart, dispatch] = useReducer(cartReducer, initialState);
-    const loadCartFromStorage = () => {
-      try {
-        if (typeof window !== 'undefined') {
-          const savedCart = localStorage.getItem('cart');
-          if (savedCart) {
-            const parsedCart = JSON.parse(savedCart);
-            dispatch({ type: 'LOAD_CART', payload: parsedCart });
-          }
+  
+  const loadCartFromStorage = useCallback(() => {
+    try {
+      if (typeof window !== 'undefined') {
+        const savedCart = localStorage.getItem('cart');
+        if (savedCart) {
+          const parsedCart = JSON.parse(savedCart);
+          dispatch({ type: 'LOAD_CART', payload: parsedCart });
         }
-      } catch (error) {
-        console.error('Failed to load cart from storage:', error);
       }
-    };
+    } catch (error) {
+      console.error('Failed to load cart from storage:', error);
+    }
+  }, []);
 
-    const saveCartToStorage = () => {
-      try {
-        if (typeof window !== 'undefined') {
-          localStorage.setItem('cart', JSON.stringify({
-            items: cart.items,
-            totalAmount: cart.totalAmount
-          }));
-        }
-      } catch (error) {
-        console.error('Failed to save cart to storage:', error);
+  const saveCartToStorage = useCallback(() => {
+    try {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('cart', JSON.stringify({
+          items: cart.items,
+          totalAmount: cart.totalAmount
+        }));
       }
-    };
+    } catch (error) {
+      console.error('Failed to save cart to storage:', error);
+    }
+  }, [cart.items, cart.totalAmount]);
 
   // Load cart from localStorage on mount
   useEffect(() => {
     loadCartFromStorage();
-  }, []);
+  }, [loadCartFromStorage]);
 
   // Debounced save to localStorage (save on every change but debounced)
   useEffect(() => {
@@ -162,7 +163,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }, 300); // Debounce by 300ms
     
     return () => clearTimeout(timeoutId);
-    }, [cart.items, cart.totalAmount]); // Only save when items or total changes
+    }, [cart.items, cart.totalAmount, saveCartToStorage]); // Only save when items or total changes
 
   const addToCart = (item: CartItem) => {
     dispatch({ type: 'ADD_ITEM', payload: item });
