@@ -123,7 +123,7 @@ export default function AppShell({
           className="fixed-cart"
           items={cartItems}
           totalAmount={totalAmount}
-          onCheckout={onCheckout}
+          onCheckout={onCheckout || (() => {})}
           onUpdateQuantity={onUpdateQuantity}
           onRemoveItem={onRemoveItem}
         />

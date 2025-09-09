@@ -14,7 +14,7 @@ export async function GET(req: NextRequest) {
     };
 
     // Test Supabase connection
-    let supabaseTest = { connected: false, error: null };
+    let supabaseTest: { connected: boolean; error: string | null } = { connected: false, error: null };
     try {
       const { data, error } = await supabaseServer
         .from('orders')
@@ -28,7 +28,7 @@ export async function GET(req: NextRequest) {
     }
 
     // Get recent orders
-    let recentOrders = [];
+    let recentOrders: any[] = [];
     try {
       const { data, error } = await supabaseServer
         .from('orders')

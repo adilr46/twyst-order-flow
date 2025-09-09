@@ -12,12 +12,13 @@ const UpdateStatusSchema = z.object({
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const body = await req.json();
     const { status } = UpdateStatusSchema.parse(body);
-    const orderId = params.id;
+    const resolvedParams = await params;
+    const orderId = resolvedParams.id;
 
     const supabase = createServerSupabaseClient();
     const { error } = await supabase

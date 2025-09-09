@@ -166,7 +166,10 @@ export default function MenuItemCard({
               onError={(e) => {
                 // Fallback to placeholder if image doesn't exist
                 e.currentTarget.style.display = 'none';
-                e.currentTarget.nextElementSibling.style.display = 'flex';
+                const nextElement = e.currentTarget.nextElementSibling as HTMLElement;
+                if (nextElement) {
+                  nextElement.style.display = 'flex';
+                }
               }}
             />
             <div className="absolute inset-0 bg-gray-50 rounded-xl flex items-center justify-center" style={{display: 'none'}}>

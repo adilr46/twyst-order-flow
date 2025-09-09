@@ -9,7 +9,7 @@ export const revalidate = 0;
 
 // Initialize Stripe only if secret key is available
 const stripe = ENV.STRIPE_SECRET_KEY ? new Stripe(ENV.STRIPE_SECRET_KEY, {
-  apiVersion: '2024-06-20',
+  apiVersion: '2025-08-27.basil',
   typescript: true,
 }) : null;
 

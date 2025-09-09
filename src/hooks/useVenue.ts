@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { getVenueBySlug } from "@/lib/data-layer";
 
 export function useVenue(slug?: string) {
   const [venue, setVenue] = useState<{ id: string; slug: string; name: string } | null>(null);
@@ -9,7 +8,13 @@ export function useVenue(slug?: string) {
   useEffect(() => {
     if (!slug) return;
     setLoading(true);
-    getVenueBySlug(slug).then(setVenue).catch(setError).finally(() => setLoading(false));
+    
+    // Fetch venue data from API
+    fetch(`/api/venues/${slug}`)
+      .then(res => res.json())
+      .then(data => setVenue(data.venue))
+      .catch(setError)
+      .finally(() => setLoading(false));
   }, [slug]);
 
   return { venue, loading, error };

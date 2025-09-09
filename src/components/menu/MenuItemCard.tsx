@@ -43,7 +43,7 @@ export const MenuItemCard: React.FC<MenuItemCardProps> = ({ item, disabled = fal
     const cartItem: CartItem = {
       ...item,
       price_cents: itemPriceCents, // Ensure cents format
-      quantity,
+      qty: quantity,
       specialInstructions: specialInstructions.trim() || undefined
     };
 

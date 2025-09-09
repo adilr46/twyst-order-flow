@@ -3,7 +3,7 @@
 
 type AppRoutes = "/" | "/d/[venueSlug]" | "/d/[venueSlug]/order" | "/dev-launch" | "/dev-launch/login" | "/dev/checkout-probe" | "/dev/payments/health" | "/foh/[venueSlug]" | "/o/[shortCode]" | "/order-status" | "/scan-again" | "/test-deeplinks" | "/test-links"
 type AppRouteHandlerRoutes = "/api/create-checkout-session" | "/api/dev-auth" | "/api/dev-table-token" | "/api/foh/orders/[id]/status" | "/api/foh/orders/list" | "/api/foh/update-status" | "/api/health" | "/api/menu/init" | "/api/orders/[shortCode]" | "/api/venues/[slug]" | "/api/webhooks/stripe" | "/api/webhooks/stripe/debug" | "/api/webhooks/stripe/test"
-type PageRoutes = "/FOHOrderBoard"
+type PageRoutes = never
 type LayoutRoutes = "/"
 type RedirectRoutes = never
 type RewriteRoutes = never
@@ -32,7 +32,6 @@ interface ParamMap {
   "/dev/checkout-probe": {}
   "/dev/payments/health": {}
   "/foh/[venueSlug]": { "venueSlug": string; }
-  "/FOHOrderBoard": {}
   "/o/[shortCode]": { "shortCode": string; }
   "/order-status": {}
   "/scan-again": {}
