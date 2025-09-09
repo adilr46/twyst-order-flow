@@ -47,7 +47,7 @@ export function middleware(request: NextRequest) {
   }
 
   // Check if the path matches /d/[slug] pattern
-  const dinerMenuMatch = pathname.match(/^\/d\/([^\/]+)$/)
+  const dinerMenuMatch = pathname.match(/^\/d\/([^/]+)$/)
   
   if (dinerMenuMatch) {
     const venueSlug = dinerMenuMatch[1]

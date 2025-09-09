@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, useCallback } from 'react';
+import { useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardContent, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -126,15 +126,15 @@ export default function FOHOrderBoard({ venueSlug }: { venueSlug: string }) {
     };
 
     // Initialize realtime connection
-  let channel: any = null;
-  setupRealtime().then(ch => { channel = ch; });
+  const channelRef = useRef<any>(null);
+  setupRealtime().then(ch => { channelRef.current = ch; });
 
     // ✅ Reduced polling to 15 seconds (since we have realtime)
     const pollInterval = setInterval(() => fetchOrders(false), 15000);
     
     return () => {
-      if (channel) {
-        try { channel.unsubscribe(); } catch (e) { /* noop */ }
+      if (channelRef.current) {
+        try { channelRef.current.unsubscribe(); } catch (e) { /* noop */ }
       }
       clearInterval(pollInterval);
     };
