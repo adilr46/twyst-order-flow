@@ -46,15 +46,20 @@
       "static/chunks/main-app.js",
       "static/chunks/app/d/[venueSlug]/page.js"
     ],
+    "/api/create-checkout-session/route": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/api/create-checkout-session/route.js"
+    ],
     "/api/menu/init/route": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/api/menu/init/route.js"
     ],
-    "/api/create-checkout-session/route": [
+    "/api/webhooks/stripe/route": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/api/create-checkout-session/route.js"
+      "static/chunks/app/api/webhooks/stripe/route.js"
     ],
     "/o/[shortCode]/page": [
       "static/chunks/webpack.js",
@@ -90,6 +95,11 @@
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/api/venues/[slug]/route.js"
+    ],
+    "/api/foh/update-status/route": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/api/foh/update-status/route.js"
     ]
   }
 }

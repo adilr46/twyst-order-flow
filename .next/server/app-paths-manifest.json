@@ -1,14 +1,12 @@
 {
-  "/api/dev-table-token/route": "app/api/dev-table-token/route.js",
-  "/api/menu/init/route": "app/api/menu/init/route.js",
-  "/api/create-checkout-session/route": "app/api/create-checkout-session/route.js",
-  "/api/foh/orders/list/route": "app/api/foh/orders/list/route.js",
+  "/api/webhooks/stripe/route": "app/api/webhooks/stripe/route.js",
   "/api/orders/[shortCode]/route": "app/api/orders/[shortCode]/route.js",
+  "/api/foh/orders/list/route": "app/api/foh/orders/list/route.js",
   "/api/venues/[slug]/route": "app/api/venues/[slug]/route.js",
+  "/api/foh/update-status/route": "app/api/foh/update-status/route.js",
   "/test-deeplinks/page": "app/test-deeplinks/page.js",
-  "/test-links/page": "app/test-links/page.js",
   "/page": "app/page.js",
   "/d/[venueSlug]/page": "app/d/[venueSlug]/page.js",
-  "/foh/[venueSlug]/page": "app/foh/[venueSlug]/page.js",
-  "/o/[shortCode]/page": "app/o/[shortCode]/page.js"
+  "/o/[shortCode]/page": "app/o/[shortCode]/page.js",
+  "/foh/[venueSlug]/page": "app/foh/[venueSlug]/page.js"
 }

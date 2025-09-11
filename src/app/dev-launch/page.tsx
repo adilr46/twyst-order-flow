@@ -70,7 +70,7 @@ export default async function DevLaunchPage() {
           </a>
           
           <a
-            href="/test-links"
+            href="/test-deeplinks"
             target="_blank"
             rel="noopener noreferrer"
             className="p-4 border rounded-lg hover:bg-accent/50 transition-colors text-center"

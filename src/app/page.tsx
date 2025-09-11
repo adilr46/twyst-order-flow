@@ -27,7 +27,7 @@ export default function HomePage() {
               </Link>
             </Button>
             <Button variant="outline" size="lg" asChild>
-              <Link href="/test-links">
+              <Link href="/test-deeplinks">
                 🔗 Test Links
               </Link>
             </Button>
