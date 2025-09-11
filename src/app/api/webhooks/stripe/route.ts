@@ -1,4 +1,4 @@
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { createServerSupabaseClient } from '@/lib/supabase';
 import { ENV } from '@/env';
@@ -12,6 +12,21 @@ const stripe = ENV.STRIPE_SECRET_KEY ? new Stripe(ENV.STRIPE_SECRET_KEY, {
   apiVersion: '2025-08-27.basil',
   typescript: true,
 }) : null;
+
+export async function GET() {
+  return NextResponse.json({ ok: true });
+}
+
+// Optional: helps avoid 405 on CORS preflight from some tools
+export async function OPTIONS() {
+  return new Response(null, {
+    headers: {
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "POST,OPTIONS",
+      "Access-Control-Allow-Headers": "content-type,stripe-signature",
+    },
+  });
+}
 
 export async function POST(req: NextRequest) {
   try {

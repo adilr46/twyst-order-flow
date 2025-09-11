@@ -1,0 +1,5 @@
+{
+  "/d/[venueSlug]/page": "app/d/[venueSlug]/page.js",
+  "/test-deeplinks/page": "app/test-deeplinks/page.js",
+  "/o/[shortCode]/page": "app/o/[shortCode]/page.js"
+}
