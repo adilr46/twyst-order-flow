@@ -93,9 +93,9 @@ const DinerMenu: React.FC<DinerMenuProps> = ({ venueSlug }) => {
   }, [venueSlug]);
 
   // State & derived data using new robust utils
-  const items = menuItems ?? [];
-  const tabs = buildTabsFromItems(items);
-  const counts = countPerTab(items);
+  const items = useMemo(() => menuItems ?? [], [menuItems]);
+  const tabs = useMemo(() => buildTabsFromItems(items), [items]);
+  const counts = useMemo(() => countPerTab(items), [items]);
 
   // Fallback: if current tab has 0 items but others have >0, switch to the first with items
   useEffect(() => {
@@ -104,7 +104,7 @@ const DinerMenu: React.FC<DinerMenuProps> = ({ venueSlug }) => {
     for (const t of ["Appetizers","Mains","Desserts","Drinks","All"] as FixedCategory[]) {
       if ((counts[t] ?? 0) > 0) { setSelectedTab(t); break; }
     }
-  }, [JSON.stringify(counts), selectedTab]);
+  }, [counts, selectedTab]);
 
   // Filter items by selected tab and search
   const filteredItems = useMemo(() => {

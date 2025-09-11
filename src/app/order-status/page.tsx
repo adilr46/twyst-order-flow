@@ -203,7 +203,7 @@ useEffect(() => {
   
   poll();
   return () => { cancelled = true; };
-}, [orderId, order?.status, order?.payment_intent, supabaseClient]);
+}, [orderId, order?.status, order?.payment_intent, supabaseClient, order]);
 
 // Replace the status polling useEffect (around lines 223-269) with this:
 
@@ -290,7 +290,7 @@ useEffect(() => {
     };
     poll();
     return () => { cancelled = true; };
-  }, [orderId, order?.status, order?.payment_intent, supabaseClient]);
+  }, [orderId, order?.status, order?.payment_intent, supabaseClient, order]);
 
   // Real-time subscription for order updates
   useEffect(() => {
@@ -400,7 +400,7 @@ useEffect(() => {
   // Initial fetch
   useEffect(() => {
     fetchOrder();
-  }, [orderId]);
+  }, [orderId, fetchOrder]);
 
   // Estimate completion time based on status
   useEffect(() => {
