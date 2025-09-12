@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
       ENV.STRIPE_WEBHOOK_SECRET
     );
 
-    // Handle checkout.session.completed
+    // Handle both checkout.session.completed and payment_intent.succeeded
     if (event.type === 'checkout.session.completed') {
       const session = event.data.object as Stripe.Checkout.Session;
       // Accept snake_case → camelCase → client_reference_id fallback
@@ -58,7 +58,7 @@ export async function POST(req: NextRequest) {
         (session.metadata?.orderId as string) ||
         (session.client_reference_id as string);
 
-      console.log('[stripe-webhook] Processing payment completion:', {
+      console.log('[stripe-webhook] Processing checkout.session.completed:', {
         orderId: orderId ? orderId.slice(0, 8) : undefined,
         stripeSessionId: session.id,
         hasMetadata: !!session.metadata?.order_id,
@@ -93,8 +93,6 @@ export async function POST(req: NextRequest) {
         return new Response(null, { status: 200 });
       }
 
-      const now = new Date().toISOString();
-
       // Update order status using columns that actually exist
       const { error: updateError } = await supabase
         .from('orders')
@@ -112,6 +110,53 @@ export async function POST(req: NextRequest) {
 
       console.log('[stripe-webhook] Order updated successfully:', {
         orderId: orderId.slice(0, 8),
+        status: 'paid'
+      });
+    }
+
+    // Handle payment_intent.succeeded as backup
+    if (event.type === 'payment_intent.succeeded') {
+      const paymentIntent = event.data.object as Stripe.PaymentIntent;
+      
+      console.log('[stripe-webhook] Processing payment_intent.succeeded:', {
+        paymentIntentId: paymentIntent.id,
+        metadata: paymentIntent.metadata,
+      });
+
+      // Try to find order by payment_intent ID
+      const supabase = createServerSupabaseClient();
+      const { data: order, error: orderError } = await supabase
+        .from('orders')
+        .select('id, status, payment_intent')
+        .eq('payment_intent', paymentIntent.id)
+        .single();
+
+      if (orderError || !order) {
+        console.log('[stripe-webhook] No order found for payment_intent:', paymentIntent.id);
+        return new Response(null, { status: 200 });
+      }
+
+      // Only advance created -> paid; idempotent otherwise
+      if (order.status !== 'created') {
+        console.log('[stripe-webhook] No-op for status:', order.status);
+        return new Response(null, { status: 200 });
+      }
+
+      // Update order status
+      const { error: updateError } = await supabase
+        .from('orders')
+        .update({
+          status: 'paid',
+        })
+        .eq('id', order.id);
+
+      if (updateError) {
+        console.error('[stripe-webhook] Failed to update order:', updateError);
+        return new Response('Failed to update order', { status: 500 });
+      }
+
+      console.log('[stripe-webhook] Order updated via payment_intent.succeeded:', {
+        orderId: order.id.slice(0, 8),
         status: 'paid'
       });
     }
