@@ -22,7 +22,7 @@ export async function OPTIONS() {
   return new Response(null, {
     headers: {
       "Access-Control-Allow-Origin": "*",
-      "Access-Control-Allow-Methods": "POST,OPTIONS",
+      "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
       "Access-Control-Allow-Headers": "content-type,stripe-signature",
     },
   });
@@ -120,6 +120,10 @@ export async function POST(req: NextRequest) {
 
   } catch (error) {
     console.error('Webhook error:', error);
+    // Return specific sig error message for signature verification failures
+    if (error instanceof Error && error.message.includes('signature')) {
+      return new Response(`sig error: ${error.message}`, { status: 400 });
+    }
     return new Response(
       error instanceof Error ? error.message : 'Unknown error',
       { status: 400 }

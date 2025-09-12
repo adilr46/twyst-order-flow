@@ -230,7 +230,7 @@ const DinerMenu: React.FC<DinerMenuProps> = ({ venueSlug }) => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="h-full flex flex-col">
       {/* Sticky Header Section */}
       <div className="sticky top-0 z-40 bg-white shadow-sm border-b border-gray-200">
         <div className="max-w-4xl mx-auto p-4">
@@ -333,8 +333,9 @@ const DinerMenu: React.FC<DinerMenuProps> = ({ venueSlug }) => {
         <div className="h-2"></div>
       </div>
 
-      {/* Menu Content */}
-      <div className="max-w-4xl mx-auto p-4">
+      {/* Menu Content - Scrollable */}
+      <div className="flex-1 overflow-y-auto">
+        <div className="max-w-4xl mx-auto p-4">
         {/* Menu Items */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {isLoading ? (
@@ -394,6 +395,7 @@ const DinerMenu: React.FC<DinerMenuProps> = ({ venueSlug }) => {
             <p className="text-gray-500">No items found matching your search.</p>
           </div>
         )}
+        </div>
       </div>
 
       {/* Cart Sidebar */}

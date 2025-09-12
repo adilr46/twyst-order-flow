@@ -4,7 +4,7 @@
 type AppRoutes = "/" | "/d/[venueSlug]" | "/d/[venueSlug]/order" | "/dev-launch" | "/dev-launch/login" | "/dev/checkout-probe" | "/dev/payments/health" | "/foh/[venueSlug]" | "/o/[shortCode]" | "/order-status" | "/scan-again" | "/test-deeplinks"
 type AppRouteHandlerRoutes = "/api/create-checkout-session" | "/api/dev-auth" | "/api/dev-table-token" | "/api/foh/orders/[id]/status" | "/api/foh/orders/list" | "/api/foh/update-status" | "/api/health" | "/api/menu/init" | "/api/orders/[shortCode]" | "/api/venues/[slug]" | "/api/webhooks/stripe" | "/api/webhooks/stripe/debug" | "/api/webhooks/stripe/test"
 type PageRoutes = never
-type LayoutRoutes = "/"
+type LayoutRoutes = "/" | "/d/[venueSlug]"
 type RedirectRoutes = never
 type RewriteRoutes = never
 type Routes = AppRoutes | PageRoutes | LayoutRoutes | RedirectRoutes | RewriteRoutes | AppRouteHandlerRoutes
@@ -43,6 +43,7 @@ export type ParamsOf<Route extends Routes> = ParamMap[Route]
 
 interface LayoutSlotMap {
   "/": never
+  "/d/[venueSlug]": never
 }
 
 

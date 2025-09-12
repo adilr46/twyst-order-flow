@@ -17,17 +17,17 @@ export default function HomePage() {
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button asChild size="lg">
-              <Link href="/d/demo-cafe?t=demo123">
+              <Link href="/d/demo-cafe?t=demo123" scroll={false}>
                 🍽️ Demo Cafe Menu
               </Link>
             </Button>
             <Button variant="outline" size="lg" asChild>
-              <Link href="/dev-launch">
+              <Link href="/dev-launch" scroll={false}>
                 🚀 Demo Launch
               </Link>
             </Button>
             <Button variant="outline" size="lg" asChild>
-              <Link href="/test-deeplinks">
+              <Link href="/test-deeplinks" scroll={false}>
                 🔗 Test Links
               </Link>
             </Button>

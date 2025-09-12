@@ -502,15 +502,38 @@ video {
 [hidden]:where(:not([hidden="until-found"])) {
   display: none;
 }
+  html {
+    /* Prevent mobile viewport changes */
+    height: 100%;
+    height: 100dvh;
+    overflow-x: hidden;
+  }
+  
   body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
+    /* Prevent mobile layout shifts */
+    height: 100%;
+    height: 100dvh;
+    overflow-x: hidden;
+    /* Prevent iOS bounce */
+    overscroll-behavior: none;
+    -webkit-overflow-scrolling: touch;
+    /* Prevent zoom on input focus */
+    touch-action: manipulation;
   }
   
   * {
     font-family: inherit;
+  }
+  
+  /* Prevent layout shifts from mobile browser UI */
+  #__next {
+    height: 100%;
+    height: 100dvh;
+    overflow-x: hidden;
   }
 .container {
   width: 100%;
@@ -592,6 +615,28 @@ video {
   }
 .scrollbar-hide::-webkit-scrollbar {
     display: none;
+  }
+/* Mobile-specific fixes for shutter effect */
+@media (max-width: 768px) {
+    /* Prevent mobile browser UI from causing layout shifts */
+    html, body {
+      position: fixed;
+      width: 100%;
+      height: 100%;
+      height: 100dvh;
+      overflow: hidden;
+    }
+    
+    /* Ensure smooth transitions */
+    * {
+      transform: translateZ(0);
+      backface-visibility: hidden;
+    }
+    
+    /* Prevent zoom on input focus */
+    input, textarea, select {
+      font-size: 16px;
+    }
   }
 .sr-only {
   position: absolute;
@@ -944,6 +989,9 @@ video {
 .h-24 {
   height: 6rem;
 }
+.h-28 {
+  height: 7rem;
+}
 .h-3 {
   height: 0.75rem;
 }
@@ -986,11 +1034,17 @@ video {
 .h-auto {
   height: auto;
 }
+.h-dvh {
+  height: 100dvh;
+}
 .h-full {
   height: 100%;
 }
 .h-px {
   height: 1px;
+}
+.h-screen {
+  height: 100vh;
 }
 .h-svh {
   height: 100svh;
@@ -1548,10 +1602,6 @@ video {
 }
 .border-dashed {
   border-style: dashed;
-}
-.border-\[\#1e3a8a\] {
-  --tw-border-opacity: 1;
-  border-color: rgb(30 58 138 / var(--tw-border-opacity, 1));
 }
 .border-\[\#E5E7EB\] {
   --tw-border-opacity: 1;
@@ -3042,6 +3092,10 @@ video {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .sm\:grid-cols-3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
   .sm\:flex-row {
     flex-direction: row;
   }
@@ -3122,6 +3176,10 @@ video {
 
   .md\:grid-cols-3 {
     grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .md\:grid-cols-4 {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 
   .md\:text-sm {

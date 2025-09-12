@@ -201,6 +201,12 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
 
 
 
+// Validate ../../src/app/d/[venueSlug]/layout.tsx
+{
+  const handler = {} as typeof import("../../src/app/d/[venueSlug]/layout.js")
+  handler satisfies LayoutConfig<"/d/[venueSlug]">
+}
+
 // Validate ../../src/app/layout.tsx
 {
   const handler = {} as typeof import("../../src/app/layout.js")

@@ -1,5 +1,6 @@
 import { cookies } from 'next/headers';
 import { notFound, redirect } from 'next/navigation';
+import Link from 'next/link';
 import { ENV } from '@/env';
 
 export default async function DevLaunchPage() {
@@ -36,49 +37,45 @@ export default async function DevLaunchPage() {
 
         {/* Quick Links */}
         <div className="mb-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <a
+          <Link
             href="/d/demo-cafe?t=demo123" 
-            target="_blank"
-            rel="noopener noreferrer"
             className="p-4 border rounded-lg hover:bg-accent/50 transition-colors text-center"
+            scroll={false}
           >
             <div className="text-2xl mb-2">🍽️</div>
             <div className="font-medium">Diner Menu</div>
             <div className="text-sm text-muted-foreground">Customer view</div>
-          </a>
+          </Link>
           
-          <a
+          <Link
             href="/d/demo-table/order?orderId=demo123"
-            target="_blank"
-            rel="noopener noreferrer"
             className="p-4 border rounded-lg hover:bg-accent/50 transition-colors text-center"
+            scroll={false}
           >
             <div className="text-2xl mb-2">📋</div>
             <div className="font-medium">Order Status</div>
             <div className="text-sm text-muted-foreground">Order tracking</div>
-          </a>
+          </Link>
           
-          <a
+          <Link
             href="/foh/demo-cafe"
-            target="_blank"
-            rel="noopener noreferrer"
             className="p-4 border rounded-lg hover:bg-accent/50 transition-colors text-center"
+            scroll={false}
           >
             <div className="text-2xl mb-2">👨‍🍳</div>
             <div className="font-medium">FOH Board</div>
             <div className="text-sm text-muted-foreground">Kitchen view</div>
-          </a>
+          </Link>
           
-          <a
+          <Link
             href="/test-deeplinks"
-            target="_blank"
-            rel="noopener noreferrer"
             className="p-4 border rounded-lg hover:bg-accent/50 transition-colors text-center"
+            scroll={false}
           >
             <div className="text-2xl mb-2">🔗</div>
             <div className="font-medium">Test Deep Links</div>
             <div className="text-sm text-muted-foreground">Link testing</div>
-          </a>
+          </Link>
         </div>
 
         {/* Logout Button */}
