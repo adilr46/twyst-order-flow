@@ -503,16 +503,24 @@ useEffect(() => {
   })();
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="mb-6">
-        <Button variant="ghost" onClick={() => router.back()}>
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Back
-        </Button>
-        <h1 className="text-2xl font-bold mt-2">Order #{order.id.slice(-6)}</h1>
-        <p className="text-muted-foreground">{order.venues[0]?.name}</p>
+    <main className="mx-auto max-w-[480px] min-h-[100dvh]">
+      <div className="sticky top-0 z-30 pt-safe">
+        <div className="container mx-auto px-4 py-8">
+          <div className="mb-6">
+            <Button variant="ghost" onClick={() => router.back()}>
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back
+            </Button>
+            <h1 className="text-2xl font-bold mt-2">Order #{order.id.slice(-6)}</h1>
+            <p className="text-muted-foreground">{order.venues[0]?.name}</p>
+          </div>
+        </div>
       </div>
-      <div className="space-y-6 pb-6">
+
+      {/* Make only this the vertical scroller */}
+      <div id="order-scroll-area" className="px-4 pb-safe touch-scroll">
+        <div className="container mx-auto">
+          <div className="space-y-6 pb-6">
         {/* Payment Status Alerts */}
         {getPaymentStatus(order.status, order.payment_intent) === 'pending' && (
           <Alert className="bg-blue-50 border-blue-200">
@@ -698,7 +706,9 @@ useEffect(() => {
             </motion.div>
           )}
         </AnimatePresence>
+          </div>
+        </div>
       </div>
-    </div>
+    </main>
   );
 }

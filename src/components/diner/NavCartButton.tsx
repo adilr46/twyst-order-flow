@@ -12,8 +12,9 @@ export default function NavCartButton({ count, onOpen }: NavCartButtonProps) {
   return (
     <motion.button
       onClick={onOpen}
-      whileHover={{ scale: 1.05, y: -2 }}
-      whileTap={{ scale: 0.95 }}
+      whileHover={{ scale: 1.08, y: -3 }}
+      whileTap={{ scale: 0.92 }}
+      transition={{ type: "spring", stiffness: 400, damping: 25 }}
       aria-label={`Open cart (${count} items)`}
       className="
         group relative h-12 px-4 rounded-2xl border border-transparent
@@ -22,8 +23,9 @@ export default function NavCartButton({ count, onOpen }: NavCartButtonProps) {
         hover:bg-[#1e40af]
         active:scale-95
         transition-all duration-300 ease-out
-        shadow-lg hover:shadow-xl
+        shadow-lg hover:shadow-xl hover:shadow-blue-500/30
         font-bold text-sm
+        cursor-pointer
       "
     >
       <motion.div 

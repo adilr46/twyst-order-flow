@@ -42,21 +42,17 @@ export default function StickyCheckoutBar({
   return (
     <AnimatePresence>
       <motion.div
-        initial={{ y: 72, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        exit={{ y: 72, opacity: 0 }}
+        initial={{ y: 100, opacity: 0, scale: 0.95 }}
+        animate={{ y: 0, opacity: 1, scale: 1 }}
+        exit={{ y: 100, opacity: 0, scale: 0.95 }}
         transition={{
           type: "spring",
-          stiffness: 260,
-          damping: 24
+          stiffness: 300,
+          damping: 30
         }}
-        className="fixed inset-x-0 bottom-0 z-40"
-        style={{
-          paddingBottom: 'calc(env(safe-area-inset-bottom) + 16px)'
-        }}
+        className="w-full"
       >
-        <div className="mx-auto max-w-screen-sm px-4">
-          <div className="rounded-t-3xl bg-white shadow-xl border-t border-gray-100 px-6 py-4">
+        <div className="rounded-t-3xl bg-white shadow-xl border-t border-gray-100 px-6 py-4">
             <div className="flex items-center justify-between gap-4">
               <div className="flex flex-col gap-2 flex-1">
                 <div className="flex items-center gap-2">
@@ -80,9 +76,10 @@ export default function StickyCheckoutBar({
 
               <motion.button
                 onClick={handleCartClick}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                className="btn-primary h-12 px-6 rounded-full flex items-center gap-3 shadow-lg hover:shadow-xl text-base font-semibold"
+                whileHover={{ scale: 1.05, y: -2 }}
+                whileTap={{ scale: 0.95 }}
+                transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                className="btn-primary h-12 px-6 rounded-full flex items-center gap-3 shadow-lg hover:shadow-xl hover:shadow-blue-500/30 text-base font-semibold"
                 aria-label={onOpenCart ? "Open cart" : "Proceed to checkout"}
               >
                 <ShoppingCart className="w-6 h-6 text-white" />
@@ -90,7 +87,6 @@ export default function StickyCheckoutBar({
               </motion.button>
             </div>
           </div>
-        </div>
       </motion.div>
     </AnimatePresence>
   )

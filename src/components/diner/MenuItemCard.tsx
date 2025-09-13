@@ -82,10 +82,10 @@ export default function MenuItemCard({
     <motion.div
       initial={{ opacity: 0, y: 4 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.12, ease: "easeOut" }}
-      whileHover={{ scale: 1.01 }}
-      whileTap={{ scale: 0.99 }}
-      className="bg-gray-50 rounded-2xl shadow-sm border border-gray-300 overflow-hidden hover:shadow-md hover:shadow-blue-500/10 hover:scale-[1.02] transition-all duration-300"
+      transition={{ duration: 0.2, ease: "easeOut" }}
+      whileHover={{ scale: 1.02, y: -2 }}
+      whileTap={{ scale: 0.98 }}
+      className="bg-gray-50 rounded-2xl shadow-sm border border-gray-300 overflow-hidden hover:shadow-lg hover:shadow-blue-500/20 transition-all duration-300 ease-out cursor-pointer"
     >
       {/* Left-Right Layout */}
       <div className="flex gap-5 p-6">
@@ -115,10 +115,10 @@ export default function MenuItemCard({
             {qty === 0 ? (
               <motion.button
                 onClick={handleAdd}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                transition={{ type: "spring", stiffness: 300, damping: 20 }}
-                className="w-full max-w-[200px] bg-[#1e3a8a] hover:bg-[#1e40af] text-white font-bold py-3 px-5 rounded-full flex items-center justify-center gap-2 transition-all duration-300 shadow-lg hover:shadow-xl hover:shadow-blue-500/25"
+                whileHover={{ scale: 1.05, y: -1 }}
+                whileTap={{ scale: 0.95 }}
+                transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                className="w-full max-w-[200px] bg-[#1e3a8a] hover:bg-[#1e40af] text-white font-bold py-3 px-5 rounded-full flex items-center justify-center gap-2 transition-all duration-300 shadow-lg hover:shadow-xl hover:shadow-blue-500/30 active:shadow-md"
                 aria-label={`Add ${item.name} to cart`}
               >
                 <Plus className="w-5 h-5" />
@@ -128,8 +128,9 @@ export default function MenuItemCard({
               <div className="flex items-center gap-2">
                 <motion.button
                   onClick={onDec}
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
+                  whileHover={{ scale: 1.1, y: -1 }}
+                  whileTap={{ scale: 0.9 }}
+                  transition={{ type: "spring", stiffness: 400, damping: 25 }}
                   className="h-10 w-10 flex items-center justify-center rounded-2xl border-2 border-gray-200 text-gray-600 bg-white hover:bg-gray-50 hover:border-gray-300 active:bg-gray-100 shadow-md hover:shadow-lg transition-all duration-200"
                   aria-label={`Decrease quantity of ${item.name}`}
                 >
@@ -142,8 +143,9 @@ export default function MenuItemCard({
 
                 <motion.button
                   onClick={onInc}
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
+                  whileHover={{ scale: 1.1, y: -1 }}
+                  whileTap={{ scale: 0.9 }}
+                  transition={{ type: "spring", stiffness: 400, damping: 25 }}
                   className="h-10 w-10 flex items-center justify-center rounded-2xl border-2 border-gray-200 text-gray-600 bg-white hover:bg-gray-50 hover:border-gray-300 active:bg-gray-100 shadow-md hover:shadow-lg transition-all duration-200"
                   aria-label={`Increase quantity of ${item.name}`}
                 >

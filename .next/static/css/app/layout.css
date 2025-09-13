@@ -616,26 +616,41 @@ video {
 .scrollbar-hide::-webkit-scrollbar {
     display: none;
   }
-/* Mobile-specific fixes for shutter effect */
+/* Mobile-specific enhancements */
 @media (max-width: 768px) {
-    /* Prevent mobile browser UI from causing layout shifts */
-    html, body {
-      position: fixed;
-      width: 100%;
-      height: 100%;
-      height: 100dvh;
-      overflow: hidden;
-    }
-    
-    /* Ensure smooth transitions */
-    * {
-      transform: translateZ(0);
-      backface-visibility: hidden;
-    }
-    
     /* Prevent zoom on input focus */
     input, textarea, select {
       font-size: 16px;
+    }
+    
+    /* Enhanced touch interactions */
+    button, [role="button"], .clickable {
+      -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
+      transition: transform 0.1s ease-out, box-shadow 0.1s ease-out;
+    }
+    
+    button:active, [role="button"]:active, .clickable:active {
+      transform: scale(0.98);
+    }
+    
+    /* Smooth scrolling with momentum */
+    * {
+      -webkit-overflow-scrolling: touch;
+      scroll-behavior: smooth;
+    }
+    
+    /* Enhanced focus states for accessibility */
+    button:focus-visible, [role="button"]:focus-visible {
+      outline: 2px solid #3b82f6;
+      outline-offset: 2px;
+    }
+    
+    /* Better text selection */
+    ::-moz-selection {
+      background-color: rgba(59, 130, 246, 0.2);
+    }
+    ::selection {
+      background-color: rgba(59, 130, 246, 0.2);
     }
   }
 .sr-only {
@@ -654,6 +669,9 @@ video {
 }
 .pointer-events-auto {
   pointer-events: auto;
+}
+.\!visible {
+  visibility: visible !important;
 }
 .visible {
   visibility: visible;
@@ -788,6 +806,9 @@ video {
 }
 .z-20 {
   z-index: 20;
+}
+.z-30 {
+  z-index: 30;
 }
 .z-40 {
   z-index: 40;
@@ -1034,17 +1055,11 @@ video {
 .h-auto {
   height: auto;
 }
-.h-dvh {
-  height: 100dvh;
-}
 .h-full {
   height: 100%;
 }
 .h-px {
   height: 1px;
-}
-.h-screen {
-  height: 100vh;
 }
 .h-svh {
   height: 100svh;
@@ -1060,6 +1075,9 @@ video {
 }
 .min-h-0 {
   min-height: 0px;
+}
+.min-h-\[100dvh\] {
+  min-height: 100dvh;
 }
 .min-h-\[50vh\] {
   min-height: 50vh;
@@ -1206,6 +1224,9 @@ video {
 .max-w-\[200px\] {
   max-width: 200px;
 }
+.max-w-\[480px\] {
+  max-width: 480px;
+}
 .max-w-lg {
   max-width: 32rem;
 }
@@ -1215,9 +1236,6 @@ video {
 }
 .max-w-md {
   max-width: 28rem;
-}
-.max-w-screen-sm {
-  max-width: 640px;
 }
 .max-w-sm {
   max-width: 24rem;
@@ -1964,6 +1982,9 @@ video {
 .pb-6 {
   padding-bottom: 1.5rem;
 }
+.pb-\[calc\(var\(--safe-bottom\)\+12px\)\] {
+  padding-bottom: calc(var(--safe-bottom) + 12px);
+}
 .pl-10 {
   padding-left: 2.5rem;
 }
@@ -2400,6 +2421,16 @@ video {
   transition-timing-function: cubic-bezier(0, 0, 0.2, 1);
 }
 
+/* Safe area utilities for mobile */
+:root {
+  --safe-top: env(safe-area-inset-top);
+  --safe-bottom: env(safe-area-inset-bottom);
+}
+
+.pt-safe { padding-top: var(--safe-top); }
+.pb-safe { padding-bottom: var(--safe-bottom); }
+.touch-scroll { -webkit-overflow-scrolling: touch; }
+
 .file\:border-0::file-selector-button {
   border-width: 0px;
 }
@@ -2499,12 +2530,6 @@ video {
 .hover\:scale-\[1\.01\]:hover {
   --tw-scale-x: 1.01;
   --tw-scale-y: 1.01;
-  transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y));
-}
-
-.hover\:scale-\[1\.02\]:hover {
-  --tw-scale-x: 1.02;
-  --tw-scale-y: 1.02;
   transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y));
 }
 
@@ -2614,19 +2639,24 @@ video {
   box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
 }
 
-.hover\:shadow-blue-500\/10:hover {
-  --tw-shadow-color: rgb(59 130 246 / 0.1);
+.hover\:shadow-blue-500\/20:hover {
+  --tw-shadow-color: rgb(59 130 246 / 0.2);
   --tw-shadow: var(--tw-shadow-colored);
 }
 
-.hover\:shadow-blue-500\/25:hover {
-  --tw-shadow-color: rgb(59 130 246 / 0.25);
+.hover\:shadow-blue-500\/30:hover {
+  --tw-shadow-color: rgb(59 130 246 / 0.3);
   --tw-shadow: var(--tw-shadow-colored);
 }
 
 .hover\:brightness-110:hover {
   --tw-brightness: brightness(1.1);
   filter: var(--tw-blur) var(--tw-brightness) var(--tw-contrast) var(--tw-grayscale) var(--tw-hue-rotate) var(--tw-invert) var(--tw-saturate) var(--tw-sepia) var(--tw-drop-shadow);
+}
+
+.focus\:border-\[\#1e3a8a\]:focus {
+  --tw-border-opacity: 1;
+  border-color: rgb(30 58 138 / var(--tw-border-opacity, 1));
 }
 
 .focus\:border-transparent:focus {
@@ -2646,6 +2676,10 @@ video {
   --tw-ring-offset-shadow: var(--tw-ring-inset) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color);
   --tw-ring-shadow: var(--tw-ring-inset) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color);
   box-shadow: var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow, 0 0 #0000);
+}
+
+.focus\:ring-\[\#1e3a8a\]\/20:focus {
+  --tw-ring-color: rgb(30 58 138 / 0.2);
 }
 
 .focus\:ring-blue-500:focus {
@@ -2696,6 +2730,12 @@ video {
 .active\:bg-gray-200:active {
   --tw-bg-opacity: 1;
   background-color: rgb(229 231 235 / var(--tw-bg-opacity, 1));
+}
+
+.active\:shadow-md:active {
+  --tw-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --tw-shadow-colored: 0 4px 6px -1px var(--tw-shadow-color), 0 2px 4px -2px var(--tw-shadow-color);
+  box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
 }
 
 .disabled\:pointer-events-none:disabled {
