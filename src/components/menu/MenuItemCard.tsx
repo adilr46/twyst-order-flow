@@ -86,7 +86,7 @@ export const MenuItemCard: React.FC<MenuItemCardProps> = ({ item, disabled = fal
         <div className="flex items-start justify-between gap-3">
           <div className="flex-1">
             <h3 className="font-semibold text-lg leading-tight">{item.name}</h3>
-            <p className="text-muted-foreground text-sm mt-1 line-clamp-2">
+            <p className="text-muted-foreground text-sm mt-1 line-clamp-2 whitespace-normal break-words">
               {item.description}
             </p>
           </div>

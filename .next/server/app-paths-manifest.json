@@ -1,8 +1,7 @@
 {
+  "/api/dev-table-token/route": "app/api/dev-table-token/route.js",
   "/api/menu/init/route": "app/api/menu/init/route.js",
-  "/api/create-checkout-session/route": "app/api/create-checkout-session/route.js",
-  "/api/orders/[shortCode]/route": "app/api/orders/[shortCode]/route.js",
+  "/page": "app/page.js",
   "/test-deeplinks/page": "app/test-deeplinks/page.js",
-  "/o/[shortCode]/page": "app/o/[shortCode]/page.js",
   "/d/[venueSlug]/page": "app/d/[venueSlug]/page.js"
 }

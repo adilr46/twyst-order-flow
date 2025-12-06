@@ -105,7 +105,7 @@ export default function MenuItemCard({
 
           {/* Description */}
           {item.description && (
-            <p className="text-sm text-gray-500 leading-relaxed line-clamp-2">
+            <p className="text-sm text-gray-500 leading-relaxed line-clamp-2 whitespace-normal break-words">
               {item.description}
             </p>
           )}

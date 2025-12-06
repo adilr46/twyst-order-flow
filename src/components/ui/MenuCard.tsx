@@ -57,7 +57,7 @@ export default function MenuCard({
         </div>
 
         {/* Description */}
-        <p className="text-sm text-gray-600 leading-relaxed line-clamp-2">
+        <p className="text-sm text-gray-600 leading-relaxed line-clamp-2 whitespace-normal break-words">
           {description}
         </p>
 
