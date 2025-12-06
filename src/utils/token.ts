@@ -1,6 +1,6 @@
 export const TOKEN_QUERY_KEY = 't';
-// Allow both 32-char hex tokens and demo tokens
-export const TOKEN_REGEX = /^(?:[a-f0-9]{32}|demo[0-9]{3})$/i;
+// Allow both 32-char hex tokens, demo tokens, and custom tokens
+export const TOKEN_REGEX = /^(?:[a-f0-9]{32}|demo[0-9]{3}|[a-z0-9\-_]+)$/i;
 
 /**
  * Validates a token format (32-char hex, case-insensitive)

@@ -273,10 +273,9 @@ export default function FOHOrderBoard({ venueSlug }: { venueSlug: string }) {
   const totalOrders = Object.values(grouped).reduce((sum, arr) => sum + arr.length, 0);
 
   return (
-    <div className="container mx-auto px-4 py-6 space-y-6">
+    <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">FOH Dashboard</h1>
           <p className="text-muted-foreground">
             {venueSlug} • {totalOrders} active orders
           </p>

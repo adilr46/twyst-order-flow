@@ -16,11 +16,9 @@ const nextConfig = {
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
   },
   eslint: {
-    // Temporarily disable ESLint during build for core functionality testing
     ignoreDuringBuilds: true,
   },
   typescript: {
-    // Temporarily disable TypeScript checks during build
     ignoreBuildErrors: true,
   },
   // Allow cross-origin requests from your phone's IP address
